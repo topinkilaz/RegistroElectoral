@@ -1,7 +1,10 @@
 "use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
 	Table,
 	TableBody,
@@ -10,99 +13,220 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
 	Search,
 	Plus,
 	MoreHorizontal,
-	Mail,
-	Phone,
-	Filter,
+	Pencil,
+	Key,
+	UserX,
+	UserCheck,
+	ChevronLeft,
+	ChevronRight,
+	Loader2,
 } from "lucide-react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const users = [
-	{
-		id: 1,
-		name: "John Doe",
-		email: "john.doe@example.com",
-		role: "Admin",
-		status: "Active",
-		avatar: "/avatar.png",
-		lastSeen: "2 hours ago",
-	},
-	{
-		id: 2,
-		name: "Jane Smith",
-		email: "jane.smith@example.com",
-		role: "User",
-		status: "Active",
-		avatar: "/avatar.png",
-		lastSeen: "1 day ago",
-	},
-	{
-		id: 3,
-		name: "Bob Johnson",
-		email: "bob.johnson@example.com",
-		role: "Moderator",
-		status: "Inactive",
-		avatar: "/avatar.png",
-		lastSeen: "1 week ago",
-	},
-	{
-		id: 4,
-		name: "Alice Brown",
-		email: "alice.brown@example.com",
-		role: "User",
-		status: "Active",
-		avatar: "/avatar.png",
-		lastSeen: "3 hours ago",
-	},
-	{
-		id: 5,
-		name: "Charlie Wilson",
-		email: "charlie.wilson@example.com",
-		role: "User",
-		status: "Pending",
-		avatar: "/avatar.png",
-		lastSeen: "Never",
-	},
-];
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import {
+	useUsuarios,
+	useCreateUsuario,
+	useUpdateUsuario,
+	useCambiarPassword,
+	useCambiarEstado,
+} from "@/lib/hooks/useUsuarios";
+import type {
+	Usuario,
+	RolNombre,
+	EstadoUsuario,
+	CreateUsuarioDto,
+	UpdateUsuarioDto,
+} from "@/lib/types/usuario";
 
 export default function UsersPage() {
+	const [search, setSearch] = useState("");
+	const [page, setPage] = useState(1);
+	const [searchTerm, setSearchTerm] = useState("");
+
+	// Modals
+	const [createModalOpen, setCreateModalOpen] = useState(false);
+	const [editModalOpen, setEditModalOpen] = useState(false);
+	const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+	const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
+
+	// Form states
+	const [newUser, setNewUser] = useState<CreateUsuarioDto>({
+		nombres: "",
+		apellidos: "",
+		numDocumento: "",
+		celular: "",
+		estado: "ACTIVO",
+		rol: "VISOR",
+	});
+	const [editUser, setEditUser] = useState<UpdateUsuarioDto>({});
+	const [newPassword, setNewPassword] = useState("");
+
+	// Queries & Mutations
+	const { data, isLoading, isError } = useUsuarios({
+		page,
+		limit: 10,
+		search: searchTerm || undefined,
+	});
+	const createMutation = useCreateUsuario();
+	const updateMutation = useUpdateUsuario();
+	const passwordMutation = useCambiarPassword();
+	const estadoMutation = useCambiarEstado();
+
+	const handleSearch = () => {
+		setSearchTerm(search);
+		setPage(1);
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter") {
+			handleSearch();
+		}
+	};
+
+	const handleCreate = async () => {
+		try {
+			await createMutation.mutateAsync(newUser);
+			toast.success("Usuario creado exitosamente");
+			setCreateModalOpen(false);
+			setNewUser({
+				nombres: "",
+				apellidos: "",
+				numDocumento: "",
+				celular: "",
+				estado: "ACTIVO",
+				rol: "VISOR",
+			});
+		} catch {
+			toast.error("Error al crear usuario");
+		}
+	};
+
+	const handleEdit = async () => {
+		if (!selectedUser) return;
+		try {
+			await updateMutation.mutateAsync({ id: selectedUser.id, data: editUser });
+			toast.success("Usuario actualizado exitosamente");
+			setEditModalOpen(false);
+			setSelectedUser(null);
+		} catch {
+			toast.error("Error al actualizar usuario");
+		}
+	};
+
+	const handleChangePassword = async () => {
+		if (!selectedUser) return;
+		try {
+			await passwordMutation.mutateAsync({
+				id: selectedUser.id,
+				data: { password: newPassword },
+			});
+			toast.success("Contraseña actualizada exitosamente");
+			setPasswordModalOpen(false);
+			setNewPassword("");
+			setSelectedUser(null);
+		} catch {
+			toast.error("Error al cambiar contraseña");
+		}
+	};
+
+	const handleToggleEstado = async (user: Usuario) => {
+		const nuevoEstado: EstadoUsuario = user.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";
+		try {
+			await estadoMutation.mutateAsync({
+				id: user.id,
+				data: { estado: nuevoEstado },
+			});
+			toast.success(`Usuario ${nuevoEstado === "ACTIVO" ? "activado" : "desactivado"}`);
+		} catch {
+			toast.error("Error al cambiar estado");
+		}
+	};
+
+	const openEditModal = (user: Usuario) => {
+		setSelectedUser(user);
+		setEditUser({
+			nombres: user.nombres,
+			apellidos: user.apellidos,
+			numDocumento: user.numDocumento,
+			celular: user.celular,
+			usuario: user.usuario,
+		});
+		setEditModalOpen(true);
+	};
+
+	const openPasswordModal = (user: Usuario) => {
+		setSelectedUser(user);
+		setNewPassword("");
+		setPasswordModalOpen(true);
+	};
+
+	const formatDate = (dateString: string | null) => {
+		if (!dateString) return "Nunca";
+		return new Date(dateString).toLocaleDateString("es-ES", {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+		});
+	};
+
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
 				<div>
-					<h2 className="text-3xl font-bold tracking-tight">Users</h2>
+					<h2 className="text-3xl font-bold tracking-tight">Usuarios</h2>
 					<p className="text-muted-foreground">
-						Manage user accounts and permissions.
+						Gestiona las cuentas y permisos de usuarios.
 					</p>
 				</div>
-				<Button className="flex items-center gap-2">
+				<Button onClick={() => setCreateModalOpen(true)} className="flex items-center gap-2">
 					<Plus className="h-4 w-4" />
-					Add User
+					Nuevo Usuario
 				</Button>
 			</div>
 
-			{/* Filters and Search */}
+			{/* Search */}
 			<Card>
 				<CardContent className="p-6">
 					<div className="flex items-center gap-4">
 						<div className="relative flex-1">
 							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-							<Input placeholder="Search users..." className="pl-8" />
+							<Input
+								placeholder="Buscar usuarios..."
+								className="pl-8"
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								onKeyDown={handleKeyDown}
+							/>
 						</div>
-						<Button variant="outline" className="flex items-center gap-2">
-							<Filter className="h-4 w-4" />
-							Filter
-						</Button>
+						<Button onClick={handleSearch}>Buscar</Button>
 					</div>
 				</CardContent>
 			</Card>
@@ -110,93 +234,343 @@ export default function UsersPage() {
 			{/* Users Table */}
 			<Card>
 				<CardHeader>
-					<CardTitle>All Users</CardTitle>
+					<CardTitle>Todos los Usuarios</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>User</TableHead>
-								<TableHead>Role</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead>Last Seen</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{users.map((user) => (
-								<TableRow key={user.id}>
-									<TableCell>
-										<div className="flex items-center gap-3">
-											<Avatar className="h-8 w-8">
-												<AvatarImage src={user.avatar} alt={user.name} />
-												<AvatarFallback>
-													{user.name
-														.split(" ")
-														.map((n) => n[0])
-														.join("")}
-												</AvatarFallback>
-											</Avatar>
-											<div>
-												<div className="font-medium">{user.name}</div>
-												<div className="text-sm text-muted-foreground">
-													{user.email}
+					{isLoading ? (
+						<div className="flex justify-center py-8">
+							<Loader2 className="h-8 w-8 animate-spin" />
+						</div>
+					) : isError ? (
+						<div className="text-center py-8 text-red-500">
+							Error al cargar usuarios
+						</div>
+					) : (
+						<>
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>Usuario</TableHead>
+										<TableHead>Documento</TableHead>
+										<TableHead>Celular</TableHead>
+										<TableHead>Rol</TableHead>
+										<TableHead>Estado</TableHead>
+										<TableHead>Último Acceso</TableHead>
+										<TableHead className="text-right">Acciones</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{data?.data.map((user) => (
+										<TableRow key={user.id}>
+											<TableCell>
+												<div>
+													<div className="font-medium">
+														{user.nombres} {user.apellidos}
+													</div>
+													<div className="text-sm text-muted-foreground">
+														@{user.usuario}
+													</div>
 												</div>
-											</div>
-										</div>
-									</TableCell>
-									<TableCell>
-										<Badge
-											variant={user.role === "Admin" ? "default" : "secondary"}
+											</TableCell>
+											<TableCell>{user.numDocumento}</TableCell>
+											<TableCell>{user.celular}</TableCell>
+											<TableCell>
+												<Badge
+													variant={
+														user.roles[0]?.nombre === "ADMIN"
+															? "default"
+															: user.roles[0]?.nombre === "EDITOR"
+																? "secondary"
+																: "outline"
+													}
+												>
+													{user.roles[0]?.nombre || "Sin rol"}
+												</Badge>
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={user.estado === "ACTIVO" ? "default" : "secondary"}
+													className={
+														user.estado === "ACTIVO"
+															? "bg-green-500 hover:bg-green-600"
+															: "bg-gray-500"
+													}
+												>
+													{user.estado}
+												</Badge>
+											</TableCell>
+											<TableCell className="text-muted-foreground">
+												{formatDate(user.ultimoAcceso)}
+											</TableCell>
+											<TableCell className="text-right">
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button variant="ghost" size="icon">
+															<MoreHorizontal className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuItem
+															onClick={() => openEditModal(user)}
+															className="flex items-center gap-2"
+														>
+															<Pencil className="h-4 w-4" />
+															Editar
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onClick={() => openPasswordModal(user)}
+															className="flex items-center gap-2"
+														>
+															<Key className="h-4 w-4" />
+															Cambiar Contraseña
+														</DropdownMenuItem>
+														<DropdownMenuSeparator />
+														<DropdownMenuItem
+															onClick={() => handleToggleEstado(user)}
+															className="flex items-center gap-2"
+														>
+															{user.estado === "ACTIVO" ? (
+																<>
+																	<UserX className="h-4 w-4" />
+																	Desactivar
+																</>
+															) : (
+																<>
+																	<UserCheck className="h-4 w-4" />
+																	Activar
+																</>
+															)}
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+
+							{/* Pagination */}
+							{data?.pagination && (
+								<div className="flex items-center justify-between mt-4">
+									<p className="text-sm text-muted-foreground">
+										Página {data.pagination.page} de {data.pagination.totalPages} ({data.pagination.totalItems} usuarios)
+									</p>
+									<div className="flex gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => setPage((p) => p - 1)}
+											disabled={!data.pagination.hasPreviousPage}
 										>
-											{user.role}
-										</Badge>
-									</TableCell>
-									<TableCell>
-										<Badge
-											variant={
-												user.status === "Active"
-													? "default"
-													: user.status === "Inactive"
-														? "secondary"
-														: "outline"
-											}
+											<ChevronLeft className="h-4 w-4" />
+											Anterior
+										</Button>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => setPage((p) => p + 1)}
+											disabled={!data.pagination.hasNextPage}
 										>
-											{user.status}
-										</Badge>
-									</TableCell>
-									<TableCell className="text-muted-foreground">
-										{user.lastSeen}
-									</TableCell>
-									<TableCell className="text-right">
-										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button variant="ghost" size="icon">
-													<MoreHorizontal className="h-4 w-4" />
-												</Button>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end">
-												<DropdownMenuItem className="flex items-center gap-2">
-													<Mail className="h-4 w-4" />
-													Send Email
-												</DropdownMenuItem>
-												<DropdownMenuItem className="flex items-center gap-2">
-													<Phone className="h-4 w-4" />
-													Call
-												</DropdownMenuItem>
-												<DropdownMenuItem>Edit User</DropdownMenuItem>
-												<DropdownMenuItem className="text-red-600">
-													Delete User
-												</DropdownMenuItem>
-											</DropdownMenuContent>
-										</DropdownMenu>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
+											Siguiente
+											<ChevronRight className="h-4 w-4" />
+										</Button>
+									</div>
+								</div>
+							)}
+						</>
+					)}
 				</CardContent>
 			</Card>
+
+			{/* Create Modal */}
+			<Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Nuevo Usuario</DialogTitle>
+						<DialogDescription>
+							Completa los datos para registrar un nuevo usuario.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-4 py-4">
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label>Nombres</Label>
+								<Input
+									value={newUser.nombres}
+									onChange={(e) => setNewUser({ ...newUser, nombres: e.target.value })}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Apellidos</Label>
+								<Input
+									value={newUser.apellidos}
+									onChange={(e) => setNewUser({ ...newUser, apellidos: e.target.value })}
+								/>
+							</div>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label>Nº Documento</Label>
+								<Input
+									value={newUser.numDocumento}
+									onChange={(e) => setNewUser({ ...newUser, numDocumento: e.target.value })}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Celular</Label>
+								<Input
+									value={newUser.celular}
+									onChange={(e) => setNewUser({ ...newUser, celular: e.target.value })}
+								/>
+							</div>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label>Rol</Label>
+								<Select
+									value={newUser.rol}
+									onValueChange={(value: RolNombre) => setNewUser({ ...newUser, rol: value })}
+								>
+									<SelectTrigger>
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="ADMIN">ADMIN</SelectItem>
+										<SelectItem value="EDITOR">EDITOR</SelectItem>
+										<SelectItem value="VISOR">VISOR</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+							<div className="space-y-2">
+								<Label>Estado</Label>
+								<Select
+									value={newUser.estado}
+									onValueChange={(value: EstadoUsuario) => setNewUser({ ...newUser, estado: value })}
+								>
+									<SelectTrigger>
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="ACTIVO">ACTIVO</SelectItem>
+										<SelectItem value="INACTIVO">INACTIVO</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+							Cancelar
+						</Button>
+						<Button onClick={handleCreate} disabled={createMutation.isPending}>
+							{createMutation.isPending ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								"Crear"
+							)}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Edit Modal */}
+			<Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Editar Usuario</DialogTitle>
+						<DialogDescription>
+							Modifica los datos del usuario.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-4 py-4">
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label>Nombres</Label>
+								<Input
+									value={editUser.nombres || ""}
+									onChange={(e) => setEditUser({ ...editUser, nombres: e.target.value })}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Apellidos</Label>
+								<Input
+									value={editUser.apellidos || ""}
+									onChange={(e) => setEditUser({ ...editUser, apellidos: e.target.value })}
+								/>
+							</div>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label>Nº Documento</Label>
+								<Input
+									value={editUser.numDocumento || ""}
+									onChange={(e) => setEditUser({ ...editUser, numDocumento: e.target.value })}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Celular</Label>
+								<Input
+									value={editUser.celular || ""}
+									onChange={(e) => setEditUser({ ...editUser, celular: e.target.value })}
+								/>
+							</div>
+						</div>
+						<div className="space-y-2">
+							<Label>Usuario</Label>
+							<Input
+								value={editUser.usuario || ""}
+								onChange={(e) => setEditUser({ ...editUser, usuario: e.target.value })}
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setEditModalOpen(false)}>
+							Cancelar
+						</Button>
+						<Button onClick={handleEdit} disabled={updateMutation.isPending}>
+							{updateMutation.isPending ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								"Guardar"
+							)}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Password Modal */}
+			<Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Cambiar Contraseña</DialogTitle>
+						<DialogDescription>
+							Ingresa la nueva contraseña para {selectedUser?.nombres}.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-4 py-4">
+						<div className="space-y-2">
+							<Label>Nueva Contraseña</Label>
+							<Input
+								type="password"
+								value={newPassword}
+								onChange={(e) => setNewPassword(e.target.value)}
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setPasswordModalOpen(false)}>
+							Cancelar
+						</Button>
+						<Button onClick={handleChangePassword} disabled={passwordMutation.isPending}>
+							{passwordMutation.isPending ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								"Cambiar"
+							)}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

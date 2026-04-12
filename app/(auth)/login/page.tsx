@@ -19,35 +19,49 @@ import {
 	Card,
 	CardContent,
 	CardDescription,
-	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { LogIn, Mail, Lock } from "lucide-react";
-import Link from "next/link";
+import { LogIn, User, Lock } from "lucide-react";
+import { useLogin } from "@/lib/hooks/useLogin";
+import { useAuth } from "@/lib/context/auth-context";
 
 const formSchema = z.object({
-	email: z.string().email({
-		message: "Please enter a valid email address.",
+	usuario: z.string().min(1, {
+		message: "El usuario es requerido.",
 	}),
-	password: z.string().min(6, {
-		message: "Password must be at least 6 characters.",
+	password: z.string().min(1, {
+		message: "La contraseña es requerida.",
 	}),
 });
 
 export default function LoginPage() {
+	const { login } = useAuth();
+	const { mutate: loginMutation, isPending } = useLogin();
+
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
-			email: "",
+			usuario: "",
 			password: "",
 		},
 	});
 
 	function onSubmit(values: z.infer<typeof formSchema>) {
-		console.log(values);
-		toast.success("Login successful!", {
-			description: "Welcome back! You have been logged in successfully.",
+		loginMutation(values, {
+			onSuccess: (data) => {
+				if (data.success && data.token) {
+					login(data.token, data.refresh_token, data.user);
+					toast.success(data.message || "Inicio de sesión exitoso");
+					window.location.href = "/dashboard";
+				} else {
+					toast.error("Error en la respuesta del servidor");
+				}
+			},
+			onError: (error) => {
+				const message = error.response?.data?.message || "Error al iniciar sesión";
+				toast.error(message);
+			},
 		});
 	}
 
@@ -55,9 +69,9 @@ export default function LoginPage() {
 		<Card className="w-full max-w-md">
 			<CardHeader className="text-center">
 				<LogIn className="mx-auto h-12 w-12 text-gray-400" />
-				<CardTitle className="mt-4 text-2xl">Welcome back</CardTitle>
+				<CardTitle className="mt-4 text-2xl">Iniciar Sesión</CardTitle>
 				<CardDescription>
-					Enter your credentials to access your account
+					Ingresa tus credenciales para acceder
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -65,15 +79,15 @@ export default function LoginPage() {
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 						<FormField
 							control={form.control}
-							name="email"
+							name="usuario"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Email</FormLabel>
+									<FormLabel>Usuario</FormLabel>
 									<FormControl>
 										<div className="relative">
-											<Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+											<User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
 											<Input
-												placeholder="Enter your email"
+												placeholder="Ingresa tu usuario"
 												className="pl-10"
 												{...field}
 											/>
@@ -88,13 +102,13 @@ export default function LoginPage() {
 							name="password"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Password</FormLabel>
+									<FormLabel>Contraseña</FormLabel>
 									<FormControl>
 										<div className="relative">
 											<Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
 											<Input
 												type="password"
-												placeholder="Enter your password"
+												placeholder="Ingresa tu contraseña"
 												className="pl-10"
 												{...field}
 											/>
@@ -104,31 +118,12 @@ export default function LoginPage() {
 								</FormItem>
 							)}
 						/>
-						<Button type="submit" className="w-full">
-							Sign In
+						<Button type="submit" className="w-full" disabled={isPending}>
+							{isPending ? "Ingresando..." : "Ingresar"}
 						</Button>
 					</form>
 				</Form>
 			</CardContent>
-			<CardFooter className="flex flex-col gap-4">
-				<div className="text-center text-sm">
-					<Link
-						href="/forgot-password"
-						className="text-blue-600 hover:text-blue-800 underline"
-					>
-						Forgot your password?
-					</Link>
-				</div>
-				<div className="text-center text-sm">
-					Don&apos;t have an account?{" "}
-					<Link
-						href="/register"
-						className="text-blue-600 hover:text-blue-800 underline"
-					>
-						Sign up
-					</Link>
-				</div>
-			</CardFooter>
 		</Card>
 	);
 }
