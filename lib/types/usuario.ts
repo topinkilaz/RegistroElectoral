@@ -66,3 +66,6 @@ export interface CambiarPasswordDto {
 export interface CambiarEstadoDto {
 	estado: EstadoUsuario;
 }
+export interface ReemplazarRolDto {
+	rol: RolNombre[];
+}

@@ -6,6 +6,7 @@ import {
 	updateUsuario,
 	cambiarPassword,
 	cambiarEstado,
+	reemplazarRol,
 } from "@/lib/api/usuarios";
 import type {
 	UsuariosParams,
@@ -13,6 +14,7 @@ import type {
 	UpdateUsuarioDto,
 	CambiarPasswordDto,
 	CambiarEstadoDto,
+	ReemplazarRolDto,
 } from "@/lib/types/usuario";
 import { useAuth } from "@/lib/context/auth-context";
 
@@ -67,6 +69,17 @@ export function useCambiarEstado() {
 	return useMutation({
 		mutationFn: ({ id, data }: { id: number; data: CambiarEstadoDto }) =>
 			cambiarEstado(id, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+		},
+	});
+}
+export function useReemplazarRol() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ id, data }: { id: number; data: ReemplazarRolDto }) =>
+			reemplazarRol(id, data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["usuarios"] });
 		},

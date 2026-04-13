@@ -7,6 +7,7 @@ import type {
 	CambiarPasswordDto,
 	CambiarEstadoDto,
 	Usuario,
+	ReemplazarRolDto,
 } from "@/lib/types/usuario";
 
 export async function getUsuarios(params?: UsuariosParams): Promise<UsuariosResponse> {
@@ -30,5 +31,9 @@ export async function cambiarPassword(id: number, dto: CambiarPasswordDto): Prom
 
 export async function cambiarEstado(id: number, dto: CambiarEstadoDto): Promise<Usuario> {
 	const { data } = await api.patch(`/usuarios/${id}/cambiar-estado`, dto);
+	return data;
+}
+export async function reemplazarRol(id: number, dto: ReemplazarRolDto): Promise<Usuario> {
+	const { data } = await api.post(`/usuarios/${id}/reemplazar-rol`, dto);
 	return data;
 }

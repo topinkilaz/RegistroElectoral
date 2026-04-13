@@ -24,7 +24,7 @@ import {
 	UserCheck,
 	ChevronLeft,
 	ChevronRight,
-	Loader2,
+	Loader2,Eye, EyeOff 
 } from "lucide-react";
 import {
 	DropdownMenu,
@@ -69,13 +69,14 @@ export default function UsersPage() {
 	const [page, setPage] = useState(1);
 	const [searchTerm, setSearchTerm] = useState("");
 
-	// Modals
 	const [createModalOpen, setCreateModalOpen] = useState(false);
 	const [editModalOpen, setEditModalOpen] = useState(false);
 	const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 	const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
-	// Form states
 	const [newUser, setNewUser] = useState<CreateUsuarioDto>({
 		nombres: "",
 		apellidos: "",
@@ -87,7 +88,6 @@ export default function UsersPage() {
 	const [editUser, setEditUser] = useState<UpdateUsuarioDto>({});
 	const [newPassword, setNewPassword] = useState("");
 
-	// Queries & Mutations
 	const { data, isLoading, isError } = useUsuarios({
 		page,
 		limit: 10,
@@ -139,21 +139,29 @@ export default function UsersPage() {
 		}
 	};
 
-	const handleChangePassword = async () => {
-		if (!selectedUser) return;
-		try {
-			await passwordMutation.mutateAsync({
-				id: selectedUser.id,
-				data: { password: newPassword },
-			});
-			toast.success("Contraseña actualizada exitosamente");
-			setPasswordModalOpen(false);
-			setNewPassword("");
-			setSelectedUser(null);
-		} catch {
-			toast.error("Error al cambiar contraseña");
-		}
-	};
+const handleChangePassword = async () => {
+  if (!selectedUser) return;
+  
+
+  if (newPassword !== confirmNewPassword) {
+    toast.error("Las contraseñas no coinciden");
+    return;
+  }
+  
+  try {
+    await passwordMutation.mutateAsync({
+      id: selectedUser.id,
+      data: { password: newPassword },
+    });
+    toast.success("Contraseña actualizada exitosamente");
+    setPasswordModalOpen(false);
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setSelectedUser(null);
+  } catch {
+    toast.error("Error al cambiar contraseña");
+  }
+};
 
 	const handleToggleEstado = async (user: Usuario) => {
 		const nuevoEstado: EstadoUsuario = user.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";
@@ -180,11 +188,14 @@ export default function UsersPage() {
 		setEditModalOpen(true);
 	};
 
-	const openPasswordModal = (user: Usuario) => {
-		setSelectedUser(user);
-		setNewPassword("");
-		setPasswordModalOpen(true);
-	};
+const openPasswordModal = (user: Usuario) => {
+  setSelectedUser(user);
+  setNewPassword("");
+  setConfirmNewPassword(""); 
+  setShowNewPassword(false); 
+  setShowConfirmNewPassword(false); 
+  setPasswordModalOpen(true);
+};
 
 	const formatDate = (dateString: string | null) => {
 		if (!dateString) return "Nunca";
@@ -212,12 +223,12 @@ export default function UsersPage() {
 				</Button>
 			</div>
 
-			{/* Search */}
 			<Card>
-				<CardContent className="p-6">
-					<div className="flex items-center gap-4">
+				<CardHeader className="flex flex-row items-center justify-between">
+					<CardTitle>Todos los Usuarios</CardTitle>
+					<div className="flex items-center gap-4 w-1/3">
 						<div className="relative flex-1">
-							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
 							<Input
 								placeholder="Buscar usuarios..."
 								className="pl-8"
@@ -226,15 +237,8 @@ export default function UsersPage() {
 								onKeyDown={handleKeyDown}
 							/>
 						</div>
-						<Button onClick={handleSearch}>Buscar</Button>
+						<Button onClick={handleSearch} size="sm">Buscar</Button>
 					</div>
-				</CardContent>
-			</Card>
-
-			{/* Users Table */}
-			<Card>
-				<CardHeader>
-					<CardTitle>Todos los Usuarios</CardTitle>
 				</CardHeader>
 				<CardContent>
 					{isLoading ? (
@@ -349,7 +353,6 @@ export default function UsersPage() {
 								</TableBody>
 							</Table>
 
-							{/* Pagination */}
 							{data?.pagination && (
 								<div className="flex items-center justify-between mt-4">
 									<p className="text-sm text-muted-foreground">
@@ -382,7 +385,6 @@ export default function UsersPage() {
 				</CardContent>
 			</Card>
 
-			{/* Create Modal */}
 			<Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
 				<DialogContent>
 					<DialogHeader>
@@ -410,14 +412,14 @@ export default function UsersPage() {
 						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label>Nº Documento</Label>
+								<Label>Nº Documento (Se usará como : USUARIO)</Label>
 								<Input
 									value={newUser.numDocumento}
 									onChange={(e) => setNewUser({ ...newUser, numDocumento: e.target.value })}
 								/>
 							</div>
 							<div className="space-y-2">
-								<Label>Celular</Label>
+								<Label>Celular Whatsapp(Se usará como : CONTRASEÑA)</Label>
 								<Input
 									value={newUser.celular}
 									onChange={(e) => setNewUser({ ...newUser, celular: e.target.value })}
@@ -473,7 +475,6 @@ export default function UsersPage() {
 				</DialogContent>
 			</Dialog>
 
-			{/* Edit Modal */}
 			<Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
 				<DialogContent>
 					<DialogHeader>
@@ -501,14 +502,14 @@ export default function UsersPage() {
 						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label>Nº Documento</Label>
+								<Label>Nº Documento </Label>
 								<Input
 									value={editUser.numDocumento || ""}
 									onChange={(e) => setEditUser({ ...editUser, numDocumento: e.target.value })}
 								/>
 							</div>
 							<div className="space-y-2">
-								<Label>Celular</Label>
+								<Label>Celular Whatsapp</Label>
 								<Input
 									value={editUser.celular || ""}
 									onChange={(e) => setEditUser({ ...editUser, celular: e.target.value })}
@@ -539,38 +540,79 @@ export default function UsersPage() {
 			</Dialog>
 
 			{/* Password Modal */}
-			<Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Cambiar Contraseña</DialogTitle>
-						<DialogDescription>
-							Ingresa la nueva contraseña para {selectedUser?.nombres}.
-						</DialogDescription>
-					</DialogHeader>
-					<div className="grid gap-4 py-4">
-						<div className="space-y-2">
-							<Label>Nueva Contraseña</Label>
-							<Input
-								type="password"
-								value={newPassword}
-								onChange={(e) => setNewPassword(e.target.value)}
-							/>
-						</div>
-					</div>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setPasswordModalOpen(false)}>
-							Cancelar
-						</Button>
-						<Button onClick={handleChangePassword} disabled={passwordMutation.isPending}>
-							{passwordMutation.isPending ? (
-								<Loader2 className="h-4 w-4 animate-spin" />
-							) : (
-								"Cambiar"
-							)}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+<Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Cambiar Contraseña</DialogTitle>
+      <DialogDescription>
+        Ingresa la nueva contraseña para {selectedUser?.nombres}.
+      </DialogDescription>
+    </DialogHeader>
+    <div className="grid gap-4 py-4">
+      <div className="space-y-2">
+        <Label>Nueva Contraseña</Label>
+        <div className="relative">
+          <Input
+            type={showNewPassword ? "text" : "password"}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowNewPassword(!showNewPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          >
+            {showNewPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Confirmar Contraseña</Label>
+        <div className="relative">
+          <Input
+            type={showConfirmNewPassword ? "text" : "password"}
+            value={confirmNewPassword}
+            onChange={(e) => setConfirmNewPassword(e.target.value)}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          >
+            {showConfirmNewPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => {
+        setPasswordModalOpen(false);
+        setNewPassword("");
+        setConfirmNewPassword("");
+      }}>
+        Cancelar
+      </Button>
+      <Button onClick={handleChangePassword} disabled={passwordMutation.isPending}>
+        {passwordMutation.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          "Cambiar"
+        )}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 		</div>
 	);
 }
