@@ -70,7 +70,8 @@ export default function AgrupacionesPage() {
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedAgrupacion, setSelectedAgrupacion] = useState<Agrupacion | null>(null);
+  const [selectedAgrupacion, setSelectedAgrupacion] =
+    useState<Agrupacion | null>(null);
 
   const [newAgrupacion, setNewAgrupacion] = useState({
     nombre: "",
@@ -81,7 +82,7 @@ export default function AgrupacionesPage() {
   const { data, isLoading, isError, error } = useAgrupaciones({
     search: searchTerm || undefined,
   });
-  
+
   const createMutation = useCreateAgrupacion();
   const updateMutation = useUpdateAgrupacion();
   const exportMutation = useExportarAgrupaciones();
@@ -91,12 +92,12 @@ export default function AgrupacionesPage() {
   const filteredData = useMemo(() => {
     if (!data) return [];
     if (!searchTerm) return data;
-    
+
     const searchLower = searchTerm.toLowerCase();
     return data.filter(
       (agrupacion) =>
         agrupacion.nombre.toLowerCase().includes(searchLower) ||
-        agrupacion.sigla?.toLowerCase().includes(searchLower)
+        agrupacion.sigla?.toLowerCase().includes(searchLower),
     );
   }, [data, searchTerm]);
 
@@ -133,7 +134,10 @@ export default function AgrupacionesPage() {
   const handleEdit = async () => {
     if (!selectedAgrupacion) return;
     try {
-      await updateMutation.mutateAsync({ id: selectedAgrupacion.id, data: editAgrupacion });
+      await updateMutation.mutateAsync({
+        id: selectedAgrupacion.id,
+        data: editAgrupacion,
+      });
       toast.success("Agrupación actualizada exitosamente");
       setEditModalOpen(false);
       setSelectedAgrupacion(null);
@@ -148,7 +152,7 @@ export default function AgrupacionesPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `agrupaciones_proceso_${procesoId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `agrupaciones_proceso_${procesoId}_${new Date().toISOString().split("T")[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -160,20 +164,27 @@ export default function AgrupacionesPage() {
   };
 
   const handleToggleEstado = async (agrupacion: Agrupacion) => {
-    const nuevoEstado: EstadoAgrupacion = agrupacion.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";
+    const nuevoEstado: EstadoAgrupacion =
+      agrupacion.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";
     try {
       await updateMutation.mutateAsync({
         id: agrupacion.id,
         data: { estado: nuevoEstado },
       });
-      toast.success(`Agrupación ${nuevoEstado === "ACTIVO" ? "activada" : "desactivada"} exitosamente`);
+      toast.success(
+        `Agrupación ${nuevoEstado === "ACTIVO" ? "activada" : "desactivada"} exitosamente`,
+      );
     } catch (error: any) {
       toast.error(error?.message || "Error al cambiar estado");
     }
   };
 
   const handleDelete = async (agrupacion: Agrupacion) => {
-    if (confirm(`¿Está seguro de eliminar permanentemente la agrupación "${agrupacion.nombre}"?`)) {
+    if (
+      confirm(
+        `¿Está seguro de eliminar permanentemente la agrupación "${agrupacion.nombre}"?`,
+      )
+    ) {
       try {
         await deleteMutation.mutateAsync(agrupacion.id);
         toast.success("Agrupación eliminada exitosamente");
@@ -210,7 +221,9 @@ export default function AgrupacionesPage() {
           <CardContent className="pt-6">
             <div className="text-center">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No hay proceso seleccionado</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                No hay proceso seleccionado
+              </h3>
               <p className="text-muted-foreground">
                 Seleccione un proceso para ver las agrupaciones
               </p>
@@ -227,14 +240,15 @@ export default function AgrupacionesPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Agrupaciones</h2>
           <p className="text-muted-foreground">
-            Gestiona las agrupaciones del proceso: <strong>{proceso?.nombre}</strong>
+            Gestiona las agrupaciones del proceso:{" "}
+            <strong>{proceso?.nombre}</strong>
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={handleExport} 
-            variant="outline" 
-            className="flex items-center gap-2" 
+          <Button
+            onClick={handleExport}
+            variant="outline"
+            className="flex items-center gap-2"
             disabled={exportMutation.isPending || !filteredData.length}
           >
             {exportMutation.isPending ? (
@@ -244,7 +258,10 @@ export default function AgrupacionesPage() {
             )}
             Exportar
           </Button>
-          <Button onClick={() => setCreateModalOpen(true)} className="flex items-center gap-2">
+          <Button
+            onClick={() => setCreateModalOpen(true)}
+            className="flex items-center gap-2"
+          >
             <Plus className="h-4 w-4" />
             Nueva Agrupación
           </Button>
@@ -273,7 +290,9 @@ export default function AgrupacionesPage() {
                 </button>
               )}
             </div>
-            <Button onClick={handleSearch} size="sm">Buscar</Button>
+            <Button onClick={handleSearch} size="sm">
+              Buscar
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -301,8 +320,13 @@ export default function AgrupacionesPage() {
                 <TableBody>
                   {filteredData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        {searchTerm ? "No se encontraron agrupaciones con esa búsqueda" : "No hay agrupaciones registradas"}
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        {searchTerm
+                          ? "No se encontraron agrupaciones con esa búsqueda"
+                          : "No hay agrupaciones registradas"}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -314,17 +338,25 @@ export default function AgrupacionesPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{agrupacion.nombre}</span>
+                            <span className="font-medium">
+                              {agrupacion.nombre}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           {agrupacion.sigla && (
-                            <Badge variant="secondary">{agrupacion.sigla}</Badge>
+                            <Badge variant="secondary">
+                              {agrupacion.sigla}
+                            </Badge>
                           )}
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant={agrupacion.estado === "ACTIVO" ? "default" : "secondary"}
+                            variant={
+                              agrupacion.estado === "ACTIVO"
+                                ? "default"
+                                : "secondary"
+                            }
                             className={
                               agrupacion.estado === "ACTIVO"
                                 ? "bg-green-500 hover:bg-green-600"
@@ -388,7 +420,8 @@ export default function AgrupacionesPage() {
               {filteredData.length > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Mostrando {filteredData.length} agrupación{filteredData.length !== 1 ? 'es' : ''}
+                    Mostrando {filteredData.length} agrupación
+                    {filteredData.length !== 1 ? "es" : ""}
                     {searchTerm && ` (filtrado de ${data?.length || 0} total)`}
                   </p>
                 </div>
@@ -404,7 +437,8 @@ export default function AgrupacionesPage() {
           <DialogHeader>
             <DialogTitle>Nueva Agrupación</DialogTitle>
             <DialogDescription>
-              Completa los datos para registrar una nueva agrupación en el proceso {proceso?.nombre}.
+              Completa los datos para registrar una nueva agrupación en el
+              proceso {proceso?.nombre}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -412,7 +446,9 @@ export default function AgrupacionesPage() {
               <Label>Nombre *</Label>
               <Input
                 value={newAgrupacion.nombre}
-                onChange={(e) => setNewAgrupacion({ ...newAgrupacion, nombre: e.target.value })}
+                onChange={(e) =>
+                  setNewAgrupacion({ ...newAgrupacion, nombre: e.target.value })
+                }
                 placeholder="Ej: DISTRITO 2"
               />
             </div>
@@ -420,7 +456,9 @@ export default function AgrupacionesPage() {
               <Label>Sigla</Label>
               <Input
                 value={newAgrupacion.sigla}
-                onChange={(e) => setNewAgrupacion({ ...newAgrupacion, sigla: e.target.value })}
+                onChange={(e) =>
+                  setNewAgrupacion({ ...newAgrupacion, sigla: e.target.value })
+                }
                 placeholder="Ej: D2"
                 maxLength={20}
               />
@@ -458,14 +496,24 @@ export default function AgrupacionesPage() {
               <Label>Nombre</Label>
               <Input
                 value={editAgrupacion.nombre || ""}
-                onChange={(e) => setEditAgrupacion({ ...editAgrupacion, nombre: e.target.value })}
+                onChange={(e) =>
+                  setEditAgrupacion({
+                    ...editAgrupacion,
+                    nombre: e.target.value,
+                  })
+                }
               />
             </div>
             <div className="space-y-2">
               <Label>Sigla</Label>
               <Input
                 value={editAgrupacion.sigla || ""}
-                onChange={(e) => setEditAgrupacion({ ...editAgrupacion, sigla: e.target.value })}
+                onChange={(e) =>
+                  setEditAgrupacion({
+                    ...editAgrupacion,
+                    sigla: e.target.value,
+                  })
+                }
                 maxLength={20}
               />
             </div>
@@ -473,7 +521,7 @@ export default function AgrupacionesPage() {
               <Label>Estado</Label>
               <Select
                 value={editAgrupacion.estado || "ACTIVO"}
-                onValueChange={(value: EstadoAgrupacion) => 
+                onValueChange={(value: EstadoAgrupacion) =>
                   setEditAgrupacion({ ...editAgrupacion, estado: value })
                 }
               >

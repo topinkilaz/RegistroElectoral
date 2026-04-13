@@ -64,7 +64,8 @@ export default function DistritosPage() {
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedDistrito, setSelectedDistrito] = useState<DistritoMunicipal | null>(null);
+  const [selectedDistrito, setSelectedDistrito] =
+    useState<DistritoMunicipal | null>(null);
 
   const [newDistrito, setNewDistrito] = useState({
     nombre: "",
@@ -75,10 +76,11 @@ export default function DistritosPage() {
 
   // Obtener distritos
   const { data: distritos, isLoading, isError, error } = useDistritos();
-  
+
   // Obtener municipios del hook existente
-  const { municipios, isLoading: isLoadingMunicipios } = useListasGeograficas(true);
-  
+  const { municipios, isLoading: isLoadingMunicipios } =
+    useListasGeograficas(true);
+
   const createMutation = useCreateDistrito();
   const updateMutation = useUpdateDistrito();
   const deleteMutation = useDeleteDistrito();
@@ -87,13 +89,13 @@ export default function DistritosPage() {
   const filteredDistritos = useMemo(() => {
     if (!distritos) return [];
     if (!searchTerm) return distritos;
-    
+
     const searchLower = searchTerm.toLowerCase();
     return distritos.filter(
       (distrito) =>
         distrito.nombre.toLowerCase().includes(searchLower) ||
         distrito.codigo?.toLowerCase().includes(searchLower) ||
-        distrito.municipio.nombre.toLowerCase().includes(searchLower)
+        distrito.municipio.nombre.toLowerCase().includes(searchLower),
     );
   }, [distritos, searchTerm]);
 
@@ -125,7 +127,7 @@ export default function DistritosPage() {
       toast.error("Debe seleccionar un municipio");
       return;
     }
-    
+
     try {
       await createMutation.mutateAsync(newDistrito);
       toast.success("Distrito creado exitosamente");
@@ -143,7 +145,10 @@ export default function DistritosPage() {
   const handleEdit = async () => {
     if (!selectedDistrito) return;
     try {
-      await updateMutation.mutateAsync({ id: selectedDistrito.id, data: editDistrito });
+      await updateMutation.mutateAsync({
+        id: selectedDistrito.id,
+        data: editDistrito,
+      });
       toast.success("Distrito actualizado exitosamente");
       setEditModalOpen(false);
       setSelectedDistrito(null);
@@ -153,7 +158,11 @@ export default function DistritosPage() {
   };
 
   const handleDelete = async (distrito: DistritoMunicipal) => {
-    if (confirm(`¿Está seguro de eliminar permanentemente el distrito "${distrito.nombre}"?`)) {
+    if (
+      confirm(
+        `¿Está seguro de eliminar permanentemente el distrito "${distrito.nombre}"?`,
+      )
+    ) {
       try {
         await deleteMutation.mutateAsync(distrito.id);
         toast.success("Distrito eliminado exitosamente");
@@ -177,12 +186,17 @@ export default function DistritosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Distritos Municipales</h2>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Distritos Municipales
+          </h2>
           <p className="text-muted-foreground">
             Gestiona los distritos municipales del sistema.
           </p>
         </div>
-        <Button onClick={() => setCreateModalOpen(true)} className="flex items-center gap-2">
+        <Button
+          onClick={() => setCreateModalOpen(true)}
+          className="flex items-center gap-2"
+        >
           <Plus className="h-4 w-4" />
           Nuevo Distrito
         </Button>
@@ -210,7 +224,9 @@ export default function DistritosPage() {
                 </button>
               )}
             </div>
-            <Button onClick={handleSearch} size="sm">Buscar</Button>
+            <Button onClick={handleSearch} size="sm">
+              Buscar
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -237,8 +253,13 @@ export default function DistritosPage() {
                 <TableBody>
                   {filteredDistritos.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        {searchTerm ? "No se encontraron distritos con esa búsqueda" : "No hay distritos registrados"}
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        {searchTerm
+                          ? "No se encontraron distritos con esa búsqueda"
+                          : "No hay distritos registrados"}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -250,15 +271,15 @@ export default function DistritosPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{distrito.nombre}</span>
+                            <span className="font-medium">
+                              {distrito.nombre}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">{distrito.codigo}</Badge>
                         </TableCell>
-                        <TableCell>
-                          {distrito.municipio.nombre}
-                        </TableCell>
+                        <TableCell>{distrito.municipio.nombre}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -294,8 +315,10 @@ export default function DistritosPage() {
               {filteredDistritos.length > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Mostrando {filteredDistritos.length} distrito{filteredDistritos.length !== 1 ? 's' : ''}
-                    {searchTerm && ` (filtrado de ${distritos?.length || 0} total)`}
+                    Mostrando {filteredDistritos.length} distrito
+                    {filteredDistritos.length !== 1 ? "s" : ""}
+                    {searchTerm &&
+                      ` (filtrado de ${distritos?.length || 0} total)`}
                   </p>
                 </div>
               )}
@@ -318,7 +341,9 @@ export default function DistritosPage() {
               <Label>Nombre *</Label>
               <Input
                 value={newDistrito.nombre}
-                onChange={(e) => setNewDistrito({ ...newDistrito, nombre: e.target.value })}
+                onChange={(e) =>
+                  setNewDistrito({ ...newDistrito, nombre: e.target.value })
+                }
                 placeholder="Ej: 1, 2, Centro, Norte"
               />
             </div>
@@ -326,7 +351,9 @@ export default function DistritosPage() {
               <Label>Código *</Label>
               <Input
                 value={newDistrito.codigo}
-                onChange={(e) => setNewDistrito({ ...newDistrito, codigo: e.target.value })}
+                onChange={(e) =>
+                  setNewDistrito({ ...newDistrito, codigo: e.target.value })
+                }
                 placeholder="Ej: D_1, D-001"
               />
               <p className="text-xs text-muted-foreground">
@@ -337,7 +364,12 @@ export default function DistritosPage() {
               <Label>Municipio *</Label>
               <Select
                 value={newDistrito.municipioId?.toString() || ""}
-                onValueChange={(value) => setNewDistrito({ ...newDistrito, municipioId: parseInt(value) })}
+                onValueChange={(value) =>
+                  setNewDistrito({
+                    ...newDistrito,
+                    municipioId: parseInt(value),
+                  })
+                }
                 disabled={isLoadingMunicipios}
               >
                 <SelectTrigger>
@@ -345,14 +377,19 @@ export default function DistritosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {municipios.map((municipio: any) => (
-                    <SelectItem key={municipio.id} value={municipio.id.toString()}>
+                    <SelectItem
+                      key={municipio.id}
+                      value={municipio.id.toString()}
+                    >
                       {municipio.nombre}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {isLoadingMunicipios && (
-                <p className="text-xs text-muted-foreground">Cargando municipios...</p>
+                <p className="text-xs text-muted-foreground">
+                  Cargando municipios...
+                </p>
               )}
             </div>
           </div>
@@ -385,21 +422,30 @@ export default function DistritosPage() {
               <Label>Nombre</Label>
               <Input
                 value={editDistrito.nombre || ""}
-                onChange={(e) => setEditDistrito({ ...editDistrito, nombre: e.target.value })}
+                onChange={(e) =>
+                  setEditDistrito({ ...editDistrito, nombre: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
               <Label>Código</Label>
               <Input
                 value={editDistrito.codigo || ""}
-                onChange={(e) => setEditDistrito({ ...editDistrito, codigo: e.target.value })}
+                onChange={(e) =>
+                  setEditDistrito({ ...editDistrito, codigo: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
               <Label>Municipio</Label>
               <Select
                 value={editDistrito.municipioId?.toString() || ""}
-                onValueChange={(value) => setEditDistrito({ ...editDistrito, municipioId: parseInt(value) })}
+                onValueChange={(value) =>
+                  setEditDistrito({
+                    ...editDistrito,
+                    municipioId: parseInt(value),
+                  })
+                }
                 disabled={isLoadingMunicipios}
               >
                 <SelectTrigger>
@@ -407,7 +453,10 @@ export default function DistritosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {municipios.map((municipio: any) => (
-                    <SelectItem key={municipio.id} value={municipio.id.toString()}>
+                    <SelectItem
+                      key={municipio.id}
+                      value={municipio.id.toString()}
+                    >
                       {municipio.nombre}
                     </SelectItem>
                   ))}

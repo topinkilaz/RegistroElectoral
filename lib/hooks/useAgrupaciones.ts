@@ -20,7 +20,9 @@ interface ApiError {
   statusCode?: number;
 }
 
-export function useAgrupaciones(params?: Omit<AgrupacionesParams, 'procesoId'>) {
+export function useAgrupaciones(
+  params?: Omit<AgrupacionesParams, "procesoId">,
+) {
   const { isAuthenticated } = useAuth();
   const { procesoId } = useProcess();
 
@@ -42,7 +44,7 @@ export function useCreateAgrupacion() {
   const { procesoId } = useProcess();
 
   return useMutation({
-    mutationFn: (data: Omit<CreateAgrupacionDto, 'procesoId'>) => {
+    mutationFn: (data: Omit<CreateAgrupacionDto, "procesoId">) => {
       if (!procesoId) {
         throw new Error("No hay proceso seleccionado");
       }
