@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { AuthProvider } from "@/lib/context/auth-context";
+import { ProcessProvider } from "@/lib/context/process-context";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -110,15 +111,17 @@ export default function RootLayout({
 			<body className={inter.className}>
 				<QueryProvider>
 					<AuthProvider>
-						<ThemeProvider
-							attribute="class"
-							defaultTheme="system"
-							enableSystem
-							disableTransitionOnChange
-						>
-							{children}
-							<Toaster richColors position="top-right" />
-						</ThemeProvider>
+						<ProcessProvider>
+							<ThemeProvider
+								attribute="class"
+								defaultTheme="system"
+								enableSystem
+								disableTransitionOnChange
+							>
+								{children}
+								<Toaster richColors position="bottom-right" />
+							</ThemeProvider>
+						</ProcessProvider>
 					</AuthProvider>
 				</QueryProvider>
 			</body>

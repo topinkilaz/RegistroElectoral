@@ -20,6 +20,7 @@ import {
 	LogIn,
 	AlertCircle,
 	X,
+	MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,29 +34,26 @@ const sidebarGroups = [
 	{
 		title: "General",
 		items: [
-			{ title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-			{ title: "Analíticas", href: "/dashboard/analytics", icon: BarChart3 },
-			{ title: "Configuración", href: "/dashboard/settings", icon: Settings },
+			{ title: "Inicio", href: "/dashboard", icon: LayoutDashboard },
+		
 		],
 	},
 	{
-		title: "Páginas",
+		title: "Acciones",
 		items: [
 			{ title: "Usuarios", href: "/dashboard/users", icon: Users },
-			{ title: "Proyectos", href: "/dashboard/projects", icon: FolderKanban },
-			{ title: "Documentos", href: "/dashboard/documents", icon: FileText },
-			{ title: "Calendario", href: "/dashboard/calendar", icon: Calendar },
-			{ title: "Autenticación", href: "/dashboard/auth", icon: LogIn },
-			{ title: "Errores", href: "/dashboard/errors", icon: AlertCircle },
+			{ title: "Asignaciones", href: "/dashboard/assignments", icon: FolderKanban },
+	
+			
 		],
 	},
 	{
 		title: "Otros",
 		items: [
-			{ title: "Mensajes", href: "/dashboard/messages", icon: MessageSquare },
-			{ title: "Base de datos", href: "/dashboard/database", icon: Database },
-			{ title: "Seguridad", href: "/dashboard/security", icon: Shield },
-			{ title: "Ayuda", href: "/dashboard/help", icon: HelpCircle },
+			{ title: "Agrupaciones", href: "/dashboard/agrupaciones", icon: BarChart3 },
+			{ title: "Distritos", href: "/dashboard/distritos", icon: Database },
+			{ title: "Recintos", href: "/dashboard/recintos-table", icon: MapPin },
+		
 		],
 	},
 ];
@@ -254,7 +252,7 @@ export function Sidebar({
 				{!isCollapsed && (
 					<div className="border-t p-4 shrink-0">
 						<p className="text-xs text-muted-foreground text-center">
-							© 2024 Dashboard
+							© 2026 Inicio
 						</p>
 					</div>
 				)}

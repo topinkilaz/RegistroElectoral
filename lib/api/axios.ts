@@ -27,7 +27,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 	failedQueue = [];
 };
 
-// Request interceptor - agregar token
+
 api.interceptors.request.use((config) => {
 	if (typeof window !== "undefined") {
 		const token = localStorage.getItem("token");
@@ -38,20 +38,18 @@ api.interceptors.request.use((config) => {
 	return config;
 });
 
-// Response interceptor - manejar refresh token
 api.interceptors.response.use(
 	(response) => response,
 	async (error) => {
 		const originalRequest = error.config;
 
-		// Si es 401 y no es un retry ni una petición de auth
 		if (
 			error.response?.status === 401 &&
 			!originalRequest._retry &&
 			!originalRequest.url?.includes("/auth/")
 		) {
 			if (isRefreshing) {
-				// Si ya se está refrescando, encolar esta petición
+				
 				return new Promise((resolve, reject) => {
 					failedQueue.push({ resolve, reject });
 				})
@@ -98,7 +96,7 @@ api.interceptors.response.use(
 				return api(originalRequest);
 			} catch (refreshError) {
 				processQueue(refreshError, null);
-				// Refresh falló, limpiar y redirigir al login
+				
 				localStorage.removeItem("token");
 				localStorage.removeItem("refresh_token");
 				localStorage.removeItem("user");

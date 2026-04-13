@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, Menu } from "lucide-react";
+import { Bell, Search, Menu, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AppSwitcher } from "./app-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/context/auth-context";
+import { useProcess } from "@/lib/context/process-context";
 import { useRouter } from "next/navigation";
 
 interface TopbarProps {
@@ -23,11 +24,18 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
 	const { logout, user } = useAuth();
+	const { proceso, clearProceso } = useProcess();
 	const router = useRouter();
 
 	const handleLogout = () => {
+		clearProceso();
 		logout();
 		router.push("/login");
+	};
+
+	const handleChangeProceso = () => {
+		clearProceso();
+		router.push("/seleccionar-proceso");
 	};
 
 	const getInitials = () => {
@@ -74,16 +82,29 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 					<Search className="h-4 w-4" />
 				</Button>
 
+				{/* Proceso actual */}
+				{proceso && (
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={handleChangeProceso}
+						className="hidden md:flex items-center gap-2 text-xs font-medium"
+					>
+						<span className="truncate max-w-[150px]">{proceso.nombre}</span>
+						<RefreshCw className="h-3 w-3" />
+					</Button>
+				)}
+
 				{/* App Switcher */}
-				<div className="hidden md:block">
+			{/* 	<div className="hidden md:block">
 					<AppSwitcher />
-				</div>
+				</div> */}
 
 				{/* Theme Toggle */}
 				<ThemeToggle />
 
-				{/* Notifications */}
-				<Button
+				
+			{/* 	<Button
 					variant="ghost"
 					size="icon"
 					className="relative h-9 w-9 hover:bg-muted transition-colors"
@@ -93,7 +114,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 					<span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium">
 						3
 					</span>
-				</Button>
+				</Button> */}
 
 				{/* Profile */}
 				<DropdownMenu>
@@ -130,11 +151,21 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator className="my-2" />
-						<DropdownMenuItem className="p-3 cursor-pointer hover:bg-muted rounded-md transition-colors">
+						{/* <DropdownMenuItem className="p-3 cursor-pointer hover:bg-muted rounded-md transition-colors">
 							<span className="flex items-center gap-2">Perfil</span>
 						</DropdownMenuItem>
 						<DropdownMenuItem className="p-3 cursor-pointer hover:bg-muted rounded-md transition-colors">
 							<span className="flex items-center gap-2">Configuración</span>
+						</DropdownMenuItem> */}
+						<DropdownMenuSeparator className="my-2" />
+						<DropdownMenuItem
+							onClick={handleChangeProceso}
+							className="p-3 cursor-pointer hover:bg-muted rounded-md transition-colors"
+						>
+							<span className="flex items-center gap-2">
+								<RefreshCw className="h-4 w-4" />
+								Cambiar Proceso
+							</span>
 						</DropdownMenuItem>
 						<DropdownMenuSeparator className="my-2" />
 						<DropdownMenuItem

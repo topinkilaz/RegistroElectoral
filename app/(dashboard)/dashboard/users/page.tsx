@@ -24,7 +24,10 @@ import {
 	UserCheck,
 	ChevronLeft,
 	ChevronRight,
-	Loader2,Eye, EyeOff 
+	Loader2,
+	Eye,
+	EyeOff,
+	Shield,
 } from "lucide-react";
 import {
 	DropdownMenu,
@@ -55,6 +58,7 @@ import {
 	useUpdateUsuario,
 	useCambiarPassword,
 	useCambiarEstado,
+	useReemplazarRol,
 } from "@/lib/hooks/useUsuarios";
 import type {
 	Usuario,
@@ -63,6 +67,7 @@ import type {
 	CreateUsuarioDto,
 	UpdateUsuarioDto,
 } from "@/lib/types/usuario";
+import { PermisosModal } from "@/components/usuarios/permisos-modal";
 
 export default function UsersPage() {
 	const [search, setSearch] = useState("");
@@ -72,6 +77,7 @@ export default function UsersPage() {
 	const [createModalOpen, setCreateModalOpen] = useState(false);
 	const [editModalOpen, setEditModalOpen] = useState(false);
 	const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+	const [permisosModalOpen, setPermisosModalOpen] = useState(false);
 	const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
   const [showNewPassword, setShowNewPassword] = useState(false);
 const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
@@ -86,6 +92,7 @@ const [confirmNewPassword, setConfirmNewPassword] = useState("");
 		rol: "VISOR",
 	});
 	const [editUser, setEditUser] = useState<UpdateUsuarioDto>({});
+	const [selectedRol, setSelectedRol] = useState<RolNombre>("VISOR");
 	const [newPassword, setNewPassword] = useState("");
 
 	const { data, isLoading, isError } = useUsuarios({
@@ -97,6 +104,7 @@ const [confirmNewPassword, setConfirmNewPassword] = useState("");
 	const updateMutation = useUpdateUsuario();
 	const passwordMutation = useCambiarPassword();
 	const estadoMutation = useCambiarEstado();
+	const reemplazarRolMutation = useReemplazarRol();
 
 	const handleSearch = () => {
 		setSearchTerm(search);
@@ -127,18 +135,27 @@ const [confirmNewPassword, setConfirmNewPassword] = useState("");
 		}
 	};
 
-	const handleEdit = async () => {
-		if (!selectedUser) return;
-		try {
-			await updateMutation.mutateAsync({ id: selectedUser.id, data: editUser });
-			toast.success("Usuario actualizado exitosamente");
-			setEditModalOpen(false);
-			setSelectedUser(null);
-		} catch {
-			toast.error("Error al actualizar usuario");
+const handleEdit = async () => {
+	if (!selectedUser) return;
+	try {
+		await updateMutation.mutateAsync({ id: selectedUser.id, data: editUser });
+		
+		
+		const rolOriginal = selectedUser.roles[0]?.nombre;
+		if (rolOriginal !== selectedRol) {
+			await reemplazarRolMutation.mutateAsync({
+				id: selectedUser.id,
+				data: { rol: [selectedRol] }
+			});
 		}
-	};
-
+		
+		toast.success("Usuario actualizado exitosamente");
+		setEditModalOpen(false);
+		setSelectedUser(null);
+	} catch {
+		toast.error("Error al actualizar usuario");
+	}
+};
 const handleChangePassword = async () => {
   if (!selectedUser) return;
   
@@ -185,16 +202,22 @@ const handleChangePassword = async () => {
 			celular: user.celular,
 			usuario: user.usuario,
 		});
+		setSelectedRol(user.roles[0]?.nombre || "VISOR");
 		setEditModalOpen(true);
 	};
 
 const openPasswordModal = (user: Usuario) => {
   setSelectedUser(user);
   setNewPassword("");
-  setConfirmNewPassword(""); 
-  setShowNewPassword(false); 
-  setShowConfirmNewPassword(false); 
+  setConfirmNewPassword("");
+  setShowNewPassword(false);
+  setShowConfirmNewPassword(false);
   setPasswordModalOpen(true);
+};
+
+const openPermisosModal = (user: Usuario) => {
+	setSelectedUser(user);
+	setPermisosModalOpen(true);
 };
 
 	const formatDate = (dateString: string | null) => {
@@ -327,6 +350,13 @@ const openPasswordModal = (user: Usuario) => {
 														>
 															<Key className="h-4 w-4" />
 															Cambiar Contraseña
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onClick={() => openPermisosModal(user)}
+															className="flex items-center gap-2"
+														>
+															<Shield className="h-4 w-4" />
+															Permisos
 														</DropdownMenuItem>
 														<DropdownMenuSeparator />
 														<DropdownMenuItem
@@ -523,18 +553,34 @@ const openPasswordModal = (user: Usuario) => {
 								onChange={(e) => setEditUser({ ...editUser, usuario: e.target.value })}
 							/>
 						</div>
+						<div className="space-y-2">
+	<Label>Rol</Label>
+	<Select
+		value={selectedRol}
+		onValueChange={(value: RolNombre) => setSelectedRol(value)}
+	>
+		<SelectTrigger>
+			<SelectValue />
+		</SelectTrigger>
+		<SelectContent>
+			<SelectItem value="ADMIN">ADMIN</SelectItem>
+			<SelectItem value="EDITOR">EDITOR</SelectItem>
+			<SelectItem value="VISOR">VISOR</SelectItem>
+		</SelectContent>
+	</Select>
+</div>
 					</div>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setEditModalOpen(false)}>
 							Cancelar
 						</Button>
-						<Button onClick={handleEdit} disabled={updateMutation.isPending}>
-							{updateMutation.isPending ? (
-								<Loader2 className="h-4 w-4 animate-spin" />
-							) : (
-								"Guardar"
-							)}
-						</Button>
+						<Button onClick={handleEdit} disabled={updateMutation.isPending || reemplazarRolMutation.isPending}>
+	{updateMutation.isPending || reemplazarRolMutation.isPending ? (
+		<Loader2 className="h-4 w-4 animate-spin" />
+	) : (
+		"Guardar"
+	)}
+</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
@@ -613,6 +659,13 @@ const openPasswordModal = (user: Usuario) => {
     </DialogFooter>
   </DialogContent>
 </Dialog>
+
+			{/* Permisos Modal */}
+			<PermisosModal
+				open={permisosModalOpen}
+				onOpenChange={setPermisosModalOpen}
+				usuario={selectedUser}
+			/>
 		</div>
 	);
 }

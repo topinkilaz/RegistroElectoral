@@ -25,6 +25,7 @@ import {
 import { LogIn, User, Lock } from "lucide-react";
 import { useLogin } from "@/lib/hooks/useLogin";
 import { useAuth } from "@/lib/context/auth-context";
+import { useProcess } from "@/lib/context/process-context";
 
 const formSchema = z.object({
 	usuario: z.string().min(1, {
@@ -37,6 +38,7 @@ const formSchema = z.object({
 
 export default function LoginPage() {
 	const { login } = useAuth();
+	const { clearProceso } = useProcess();
 	const { mutate: loginMutation, isPending } = useLogin();
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -51,9 +53,10 @@ export default function LoginPage() {
 		loginMutation(values, {
 			onSuccess: (data) => {
 				if (data.success && data.token) {
+					clearProceso();
 					login(data.token, data.refresh_token, data.user);
 					toast.success(data.message || "Inicio de sesión exitoso");
-					window.location.href = "/dashboard";
+					window.location.href = "/seleccionar-proceso";
 				} else {
 					toast.error("Error en la respuesta del servidor");
 				}
