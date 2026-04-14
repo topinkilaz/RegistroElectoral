@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { registrarDelegadoMesa, eliminarDelegadoMesa } from "@/lib/api/delegado-mesa";
-import type { CreateDelegadoMesaDto } from "@/lib/types/delegado-mesa";
+import { registrarDelegadoMesa, actualizarDelegadoMesa, eliminarDelegadoMesa } from "@/lib/api/delegado-mesa";
+import type { CreateDelegadoMesaDto, UpdateDelegadoMesaDto } from "@/lib/types/delegado-mesa";
 
 export function useRegistrarDelegadoMesa() {
   const queryClient = useQueryClient();
@@ -8,7 +8,18 @@ export function useRegistrarDelegadoMesa() {
   return useMutation({
     mutationFn: (data: CreateDelegadoMesaDto) => registrarDelegadoMesa(data),
     onSuccess: () => {
-      // Invalidar todas las queries que empiecen con "recintos-usuario"
+      queryClient.invalidateQueries({ queryKey: ["recintos-usuario"] });
+    },
+  });
+}
+
+export function useActualizarDelegadoMesa() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateDelegadoMesaDto }) =>
+      actualizarDelegadoMesa(id, data),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recintos-usuario"] });
     },
   });

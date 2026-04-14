@@ -31,5 +31,15 @@ export interface CreateDelegadoMesaDto {
   recintoId?: number;
   enGrupoWhatsapp: boolean;
   tieneFotocopiaCarnet: boolean;
-  agrupacionId?: number;
+  agrupacionId?: number| null;
+}
+
+export interface UpdateDelegadoMesaDto {
+  usuarioId?: number;
+  tipo?: TipoDelegado;
+  mesaId?: number| null;
+  estado?: string;
+  enGrupoWhatsapp?: boolean;
+  tieneFotocopiaCarnet?: boolean;
+  agrupacionId?: number| null;
 }

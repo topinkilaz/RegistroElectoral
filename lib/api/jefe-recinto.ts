@@ -1,8 +1,13 @@
 import { api } from "./axios";
-import type { JefeRecinto, CreateJefeRecintoDto } from "@/lib/types/jefe-recinto";
+import type { JefeRecinto, CreateJefeRecintoDto, UpdateJefeRecintoDto } from "@/lib/types/jefe-recinto";
 
 export async function registrarJefeRecinto(dto: CreateJefeRecintoDto): Promise<JefeRecinto> {
   const { data } = await api.post("/jefe-recinto/registrar", dto);
+  return data;
+}
+
+export async function actualizarJefeRecinto(id: number, dto: UpdateJefeRecintoDto): Promise<JefeRecinto> {
+  const { data } = await api.patch(`/jefe-recinto/${id}`, dto);
   return data;
 }
 

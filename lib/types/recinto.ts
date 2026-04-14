@@ -30,6 +30,7 @@ export interface JefeRecinto {
   estado: string;
   enGrupoWhatsapp?: boolean;
   tieneFotocopiaCarnet?: boolean;
+  agrupacionId?: number | null;  
   agrupacion?: {
     id: number;
     nombre: string;
@@ -50,6 +51,7 @@ export interface DelegadoReserva {
   estado: string;
   enGrupoWhatsapp?: boolean;
   tieneFotocopiaCarnet?: boolean;
+  agrupacionId?: number | null;  
   agrupacion?: {
     id: number;
     nombre: string;

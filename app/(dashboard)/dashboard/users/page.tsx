@@ -121,23 +121,42 @@ const [confirmNewPassword, setConfirmNewPassword] = useState("");
 		}
 	};
 
-	const handleCreate = async () => {
-		try {
-			await createMutation.mutateAsync(newUser);
-			toast.success("Usuario creado exitosamente");
-			setCreateModalOpen(false);
-			setNewUser({
-				nombres: "",
-				apellidos: "",
-				numDocumento: "",
-				celular: "",
-				estado: "ACTIVO",
-				rol: ["VISOR"],
-			});
-		} catch {
-			toast.error("Error al crear usuario");
-		}
-	};
+const handleCreate = async () => {
+  try {
+    await createMutation.mutateAsync(newUser);
+    toast.success("Usuario creado exitosamente");
+    setCreateModalOpen(false);
+    setNewUser({
+      nombres: "",
+      apellidos: "",
+      numDocumento: "",
+      celular: "",
+      estado: "ACTIVO",
+      rol: ["VISOR"],
+    });
+  } catch (error: any) {
+   
+    if (error?.response?.data?.message) {
+    
+      const errorMessage = error.response.data.message;
+      
+     
+      if (errorMessage === "Usuario ya existe") {
+        toast.error("El número de documento ya está registrado. Por favor, use otro.");
+      } else if (Array.isArray(errorMessage)) {
+   
+        toast.error(errorMessage.join(", "));
+      } else {
+        toast.error(errorMessage);
+      }
+    } else if (error?.message) {
+     
+      toast.error(error.message);
+    } else {
+      toast.error("Error al crear usuario. Por favor, intente nuevamente.");
+    }
+  }
+};
 
 const handleEdit = async () => {
 	if (!selectedUser) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,13 +22,16 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useProcess } from "@/lib/context/process-context";
 import { useAgrupaciones } from "@/lib/hooks/useAgrupaciones";
-import { useRegistrarDelegadoMesa } from "@/lib/hooks/useDelegadoMesa";
+import { useRegistrarDelegadoMesa, useActualizarDelegadoMesa } from "@/lib/hooks/useDelegadoMesa";
+import { useUpdateUsuario } from "@/lib/hooks/useUsuarios";
+import type { DelegadoReserva } from "@/lib/types/recinto";
 
 interface AgregarReservaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   recintoId: number;
   recintoNombre: string;
+  editData?: DelegadoReserva | null;
 }
 
 interface FormData {
@@ -56,11 +59,33 @@ export function AgregarReservaModal({
   onOpenChange,
   recintoId,
   recintoNombre,
+  editData,
 }: AgregarReservaModalProps) {
   const { procesoId } = useProcess();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const { data: agrupaciones, isLoading: isLoadingAgrupaciones } = useAgrupaciones();
   const registrarMutation = useRegistrarDelegadoMesa();
+  const actualizarDelegadoMutation = useActualizarDelegadoMesa();
+  const actualizarUsuarioMutation = useUpdateUsuario();
+
+  const isEditMode = !!editData;
+  const isLoading = registrarMutation.isPending || actualizarDelegadoMutation.isPending || actualizarUsuarioMutation.isPending;
+
+  useEffect(() => {
+    if (open && editData) {
+      setFormData({
+        nombres: editData.usuario?.nombres || "",
+        apellidos: editData.usuario?.apellidos || "",
+        numDocumento: editData.usuario?.numDocumento || "",
+        celular: editData.usuario?.celular || "",
+        enGrupoWhatsapp: editData.enGrupoWhatsapp || false,
+        tieneFotocopiaCarnet: editData.tieneFotocopiaCarnet || false,
+        agrupacionId: editData.agrupacionId?.toString() || "", 
+      });
+    } else if (open && !editData) {
+      setFormData(initialFormData);
+    }
+  }, [open, editData]);
 
   const handleClose = () => {
     setFormData(initialFormData);
@@ -78,24 +103,55 @@ export function AgregarReservaModal({
     }
 
     try {
-      await registrarMutation.mutateAsync({
-        nombres: formData.nombres,
-        apellidos: formData.apellidos,
-        numDocumento: formData.numDocumento,
-        celular: formData.celular,
-        procesoId,
-        recintoId,
-        tipo: "reserva",
-        enGrupoWhatsapp: formData.enGrupoWhatsapp,
-        tieneFotocopiaCarnet: formData.tieneFotocopiaCarnet,
-        agrupacionId: formData.agrupacionId && formData.agrupacionId !== "none"
-          ? parseInt(formData.agrupacionId)
-          : undefined,
-      });
-      toast.success("Delegado reserva registrado exitosamente");
+      if (isEditMode && editData) {
+        // Modo edición: actualizar usuario y delegado por separado
+        const usuarioId = editData.usuario?.id;
+        if (usuarioId) {
+          await actualizarUsuarioMutation.mutateAsync({
+            id: usuarioId,
+            data: {
+              nombres: formData.nombres,
+              apellidos: formData.apellidos,
+              numDocumento: formData.numDocumento,
+              celular: formData.celular,
+            },
+          });
+        }
+
+        await actualizarDelegadoMutation.mutateAsync({
+          id: editData.id,
+          data: {
+            tipo: "reserva",
+            enGrupoWhatsapp: formData.enGrupoWhatsapp,
+            tieneFotocopiaCarnet: formData.tieneFotocopiaCarnet,
+            agrupacionId: formData.agrupacionId && formData.agrupacionId !== "none"
+              ? parseInt(formData.agrupacionId)
+              : null,
+          },
+        });
+
+        toast.success("Delegado reserva actualizado exitosamente");
+      } else {
+        // Modo creación
+        await registrarMutation.mutateAsync({
+          nombres: formData.nombres,
+          apellidos: formData.apellidos,
+          numDocumento: formData.numDocumento,
+          celular: formData.celular,
+          procesoId,
+          recintoId,
+          tipo: "reserva",
+          enGrupoWhatsapp: formData.enGrupoWhatsapp,
+          tieneFotocopiaCarnet: formData.tieneFotocopiaCarnet,
+          agrupacionId: formData.agrupacionId && formData.agrupacionId !== "none"
+            ? parseInt(formData.agrupacionId)
+            : null,
+        });
+        toast.success("Delegado reserva registrado exitosamente");
+      }
       handleClose();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Error al registrar delegado reserva");
+      toast.error(error?.response?.data?.message || `Error al ${isEditMode ? "actualizar" : "registrar"} delegado reserva`);
     }
   };
 
@@ -103,7 +159,7 @@ export function AgregarReservaModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
-          <DialogTitle>Agregar Delegado Reserva</DialogTitle>
+          <DialogTitle>{isEditMode ? "Editar" : "Agregar"} Delegado Reserva</DialogTitle>
           <p className="text-sm text-muted-foreground">{recintoNombre}</p>
         </DialogHeader>
 
@@ -200,13 +256,13 @@ export function AgregarReservaModal({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={registrarMutation.isPending}
+              disabled={isLoading}
               className="bg-sky-600 hover:bg-sky-700"
             >
-              {registrarMutation.isPending ? (
+              {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              Guardar
+              {isEditMode ? "Actualizar" : "Guardar"}
             </Button>
           </div>
         </div>

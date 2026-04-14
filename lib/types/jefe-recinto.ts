@@ -30,5 +30,13 @@ export interface CreateJefeRecintoDto {
   tipo: TipoPersonal;
   enGrupoWhatsapp: boolean;
   tieneFotocopiaCarnet: boolean;
-  agrupacionId?: number;
+  agrupacionId?: number| null;
+}
+
+export interface UpdateJefeRecintoDto {
+  usuarioId?: number;
+  tipo?: TipoPersonal;
+  enGrupoWhatsapp?: boolean;
+  tieneFotocopiaCarnet?: boolean;
+  agrupacionId?: number| null;
 }

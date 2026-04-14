@@ -9,14 +9,25 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, UserCog, Trash2, Loader2, Users, CreditCard } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { UserPlus, UserCog, Trash2, Loader2, Users, CreditCard, Pencil, ArrowRight, MoreHorizontal, UserCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useEliminarJefeRecinto } from "@/lib/hooks/useJefeRecinto";
-import { useEliminarDelegadoMesa } from "@/lib/hooks/useDelegadoMesa";
+import { useEliminarJefeRecinto, useRegistrarJefeRecinto } from "@/lib/hooks/useJefeRecinto";
+import { useEliminarDelegadoMesa, useActualizarDelegadoMesa } from "@/lib/hooks/useDelegadoMesa";
+import { useProcess } from "@/lib/context/process-context";
 import { AgregarJefeModal, AgregarDelegadoModal, AgregarReservaModal } from "./modals";
 import type { Recinto, Mesa, JefeRecinto, DelegadoReserva } from "@/lib/types/recinto";
 import WhatsAppIcon from "../whatsapp-icon";
 import { ConfirmDialog } from "./modals/confirm-dialog";
+import { useActualizarJefeRecinto } from "@/lib/hooks/useJefeRecinto";
+import { Switch } from "../ui/switch";
+
 
 interface VerAsignacionesModalProps {
   open: boolean;
@@ -45,14 +56,28 @@ function getIniciales(nombre: string): string {
     .toUpperCase();
 }
 
+function getMesasDisponibles(mesas: Mesa[]): Mesa[] {
+  return mesas.filter(mesa => {
+    const tieneTitular = (mesa.delegadosMesa || []).some((d: any) => d.tipo === "titular");
+    return !tieneTitular;
+  });
+}
+
+function tieneJefe(jefes: JefeRecinto[]): boolean {
+  return jefes && jefes.length > 0;
+}
+
 function JefeSection({
   jefes,
-  onAgregar
+  onAgregar,
+  onEditar,
 }: {
   jefes: JefeRecinto[];
   onAgregar: () => void;
+  onEditar: (jefe: JefeRecinto) => void;
 }) {
   const eliminarMutation = useEliminarJefeRecinto();
+  const actualizarJefeMutation = useActualizarJefeRecinto(); 
   const jefe = jefes?.find(j => j.tipo === "titular") || jefes?.[0];
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -115,32 +140,75 @@ function JefeSection({
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
-                {tieneCarnet && (
-                  <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded-full">
-                    <CreditCard className="h-3 w-3" />
-                    Fotocopia CI
-                  </span>
-                )}
-              </div>
+           
+<div className="flex items-center gap-3 mt-2">
+  <div className="flex items-center gap-2">
+    <Switch
+      checked={jefe.enGrupoWhatsapp || false}
+      onCheckedChange={async (checked) => {
+        try {
+          await actualizarJefeMutation.mutateAsync({ 
+            id: jefe.id, 
+            data: { enGrupoWhatsapp: checked } 
+          });
+          toast.success("Estado actualizado");
+        } catch (error) {
+          toast.error("Error al actualizar");
+        }
+      }}
+      disabled={actualizarJefeMutation.isPending}
+    />
+    <span className="text-sm text-muted-foreground">WhatsApp</span>
+  </div>
+  
+  <div className="flex items-center gap-2">
+    <Switch
+      checked={jefe.tieneFotocopiaCarnet || false}
+      onCheckedChange={async (checked) => {
+        try {
+          await actualizarJefeMutation.mutateAsync({ 
+            id: jefe.id, 
+            data: { tieneFotocopiaCarnet: checked } 
+          });
+          toast.success("Estado actualizado");
+        } catch (error) {
+          toast.error("Error al actualizar");
+        }
+      }}
+      disabled={actualizarJefeMutation.isPending}
+    />
+    <span className="text-sm text-muted-foreground">Fotocopia CI</span>
+  </div>
+</div>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowConfirm(true)}
-            disabled={eliminarMutation.isPending}
-            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 shrink-0"
-          >
-            {eliminarMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <Trash2 className="h-4 w-4 mr-1" />
-                Eliminar
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEditar(jefe)}
+              className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/30"
+            >
+              <Pencil className="h-4 w-4 mr-1" />
+              Editar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConfirm(true)}
+              disabled={eliminarMutation.isPending}
+              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+            >
+              {eliminarMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Eliminar
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <ConfirmDialog
@@ -175,14 +243,35 @@ function JefeSection({
   );
 }
 
+interface DelegadoMesaData {
+  id: number;
+  tipo: string;
+  estado?: string;
+  enGrupoWhatsapp?: boolean;
+  tieneFotocopiaCarnet?: boolean;
+  agrupacion?: { id: number; nombre: string; sigla: string } | null;
+  usuario?: {
+    id: number;
+    nombres: string;
+    apellidos: string;
+    numDocumento: string;
+    celular: string;
+  };
+}
+
 function DelegadoCell({
   mesa,
   onAgregar,
+  onEditar,
+  onMoverAReserva,
 }: {
   mesa: Mesa;
   onAgregar: () => void;
+  onEditar: (delegado: DelegadoMesaData, mesa: Mesa) => void;
+  onMoverAReserva: (delegado: DelegadoMesaData) => void;
 }) {
   const eliminarMutation = useEliminarDelegadoMesa();
+    const actualizarDelegadoMutation = useActualizarDelegadoMesa();
   const [showConfirm, setShowConfirm] = useState(false);
   const [delegadoId, setDelegadoId] = useState<number | null>(null);
 
@@ -227,22 +316,36 @@ function DelegadoCell({
                 </div>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 shrink-0"
-              onClick={() => {
-                setDelegadoId(titular.id);
-                setShowConfirm(true);
-              }}
-              disabled={eliminarMutation.isPending}
-            >
-              {eliminarMutation.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Trash2 className="h-3.5 w-3.5" />
-              )}
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEditar(titular, mesa)}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onMoverAReserva(titular)}>
+                    <ArrowRight className="h-3.5 w-3.5 mr-2" />
+                    Mover a Reserva
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-red-600 dark:text-red-400"
+                    onClick={() => {
+                      setDelegadoId(titular.id);
+                      setShowConfirm(true);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                    Eliminar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground dark:text-gray-400 pl-10">
@@ -265,14 +368,46 @@ function DelegadoCell({
             )}
           </div>
 
-          <div className="flex items-center gap-2 pl-10">
-            {tieneCarnet && (
-              <span className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded-full">
-                <CreditCard className="h-2.5 w-2.5" />
-                CI
-              </span>
-            )}
-          </div>
+       
+<div className="flex items-center gap-4 pl-10 mt-1">
+  <div className="flex items-center gap-2">
+    <Switch
+      checked={titular.enGrupoWhatsapp || false}
+      onCheckedChange={async (checked) => {
+        try {
+        await actualizarDelegadoMutation.mutateAsync({ 
+  id: titular.id, 
+  data: { enGrupoWhatsapp: checked } 
+});
+          toast.success("Estado actualizado");
+        } catch (error) {
+          toast.error("Error al actualizar");
+        }
+      }}
+      
+    />
+    <span className="text-xs text-muted-foreground">WhatsApp</span>
+  </div>
+  
+  <div className="flex items-center gap-2">
+    <Switch
+      checked={titular.tieneFotocopiaCarnet || false}
+      onCheckedChange={async (checked) => {
+        try {
+          await actualizarDelegadoMutation.mutateAsync({ 
+  id: titular.id, 
+  data: { tieneFotocopiaCarnet: checked } 
+});
+          toast.success("Estado actualizado");
+        } catch (error) {
+          toast.error("Error al actualizar");
+        }
+      }}
+      
+    />
+    <span className="text-xs text-muted-foreground">Fotocopia CI</span>
+  </div>
+</div>
         </div>
 
         <ConfirmDialog
@@ -303,12 +438,23 @@ function DelegadoCell({
 
 function ReservasSection({
   delegadosReserva,
-  onAgregar
+  mesasDisponibles,
+  hayJefe,
+  onAgregar,
+  onEditar,
+  onMoverAJefe,
+  onMoverAMesa,
 }: {
   delegadosReserva: DelegadoReserva[];
+  mesasDisponibles: Mesa[];
+  hayJefe: boolean;
   onAgregar: () => void;
+  onEditar: (delegado: DelegadoReserva) => void;
+  onMoverAJefe: (delegado: DelegadoReserva) => void;
+  onMoverAMesa: (delegado: DelegadoReserva, mesa: Mesa) => void;
 }) {
   const eliminarMutation = useEliminarDelegadoMesa();
+  const actualizarDelegadoMutation = useActualizarDelegadoMesa();
   const [showConfirm, setShowConfirm] = useState(false);
   const [delegadoId, setDelegadoId] = useState<number | null>(null);
 
@@ -374,22 +520,61 @@ function ReservasSection({
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 shrink-0"
-                    onClick={() => {
-                      setDelegadoId(delegado.id);
-                      setShowConfirm(true);
-                    }}
-                    disabled={eliminarMutation.isPending}
-                  >
-                    {eliminarMutation.isPending ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem onClick={() => onEditar(delegado)}>
+                        <Pencil className="h-3.5 w-3.5 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {!hayJefe && (
+                        <DropdownMenuItem onClick={() => onMoverAJefe(delegado)}>
+                          <UserCheck className="h-3.5 w-3.5 mr-2" />
+                          Asignar como Jefe
+                        </DropdownMenuItem>
+                      )}
+                      {mesasDisponibles.length > 0 ? (
+                        <>
+                          <DropdownMenuSeparator />
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            Asignar a Mesa
+                          </div>
+                          {mesasDisponibles.map((mesa) => (
+                            <DropdownMenuItem
+                              key={mesa.id}
+                              onClick={() => onMoverAMesa(delegado, mesa)}
+                            >
+                              <ArrowRight className="h-3.5 w-3.5 mr-2" />
+                              Mesa {mesa.numero}
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          <DropdownMenuSeparator />
+                          <div className="px-2 py-1.5 text-xs text-muted-foreground italic">
+                            Sin mesas disponibles
+                          </div>
+                        </>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-red-600 dark:text-red-400"
+                        onClick={() => {
+                          setDelegadoId(delegado.id);
+                          setShowConfirm(true);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground dark:text-gray-400 pl-11">
@@ -412,14 +597,44 @@ function ReservasSection({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 pl-11">
-                  {tieneCarnet && (
-                    <span className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded-full">
-                      <CreditCard className="h-2.5 w-2.5" />
-                      CI
-                    </span>
-                  )}
-                </div>
+                
+<div className="flex items-center gap-4 pl-11 mt-1">
+  <div className="flex items-center gap-2">
+    <Switch
+      checked={delegado.enGrupoWhatsapp || false}
+      onCheckedChange={async (checked) => {
+        try {
+          await actualizarDelegadoMutation.mutateAsync({ 
+            id: delegado.id, 
+            data: { enGrupoWhatsapp: checked } 
+          });
+          toast.success("Estado actualizado");
+        } catch (error) {
+          toast.error("Error al actualizar");
+        }
+      }}
+    />
+    <span className="text-xs text-muted-foreground">WhatsApp</span>
+  </div>
+  
+  <div className="flex items-center gap-2">
+    <Switch
+      checked={delegado.tieneFotocopiaCarnet || false}
+      onCheckedChange={async (checked) => {
+        try {
+          await actualizarDelegadoMutation.mutateAsync({ 
+            id: delegado.id, 
+            data: { tieneFotocopiaCarnet: checked } 
+          });
+          toast.success("Estado actualizado");
+        } catch (error) {
+          toast.error("Error al actualizar");
+        }
+      }}
+    />
+    <span className="text-xs text-muted-foreground">Fotocopia CI</span>
+  </div>
+</div>
               </div>
             );
           })}
@@ -447,17 +662,125 @@ export function VerAsignacionesModal({
   onOpenChange,
   recinto,
 }: VerAsignacionesModalProps) {
+  const { procesoId } = useProcess();
   const [showAgregarJefe, setShowAgregarJefe] = useState(false);
   const [showAgregarDelegado, setShowAgregarDelegado] = useState(false);
   const [showAgregarReserva, setShowAgregarReserva] = useState(false);
   const [selectedMesa, setSelectedMesa] = useState<Mesa | null>(null);
 
+  const [editJefeData, setEditJefeData] = useState<JefeRecinto | null>(null);
+  const [editDelegadoData, setEditDelegadoData] = useState<DelegadoMesaData | null>(null);
+  const [editReservaData, setEditReservaData] = useState<DelegadoReserva | null>(null);
+
+  const registrarJefeMutation = useRegistrarJefeRecinto();
+  const actualizarDelegadoMutation = useActualizarDelegadoMesa();
+  const eliminarDelegadoMutation = useEliminarDelegadoMesa();
+  const actualizarJefeMutation = useActualizarJefeRecinto();
+ 
+
+
+
   if (!recinto) return null;
+
+  const mesasDisponibles = getMesasDisponibles(recinto.mesas || []);
+  const hayJefe = tieneJefe(recinto.jefes || []);
 
   const handleAgregarDelegado = (mesa: Mesa) => {
     setSelectedMesa(mesa);
+    setEditDelegadoData(null);
     setShowAgregarDelegado(true);
   };
+
+  const handleEditarJefe = (jefe: JefeRecinto) => {
+    setEditJefeData(jefe);
+    setShowAgregarJefe(true);
+  };
+
+  const handleEditarDelegado = (delegado: DelegadoMesaData, mesa: Mesa) => {
+    setSelectedMesa(mesa);
+    setEditDelegadoData(delegado);
+    setShowAgregarDelegado(true);
+  };
+
+  const handleEditarReserva = (delegado: DelegadoReserva) => {
+    setEditReservaData(delegado);
+    setShowAgregarReserva(true);
+  };
+
+  const handleMoverDelegadoAReserva = async (delegado: DelegadoMesaData) => {
+    try {
+      await actualizarDelegadoMutation.mutateAsync({
+        id: delegado.id,
+        data: {
+          tipo: "reserva",
+          mesaId: null,
+        },
+      });
+      toast.success("Delegado movido a reserva");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Error al mover delegado");
+    }
+  };
+
+  const handleMoverReservaAJefe = async (delegado: DelegadoReserva) => {
+    if (!procesoId) {
+      toast.error("No hay proceso seleccionado");
+      return;
+    }
+    try {
+      await registrarJefeMutation.mutateAsync({
+        nombres: delegado.usuario?.nombres || "",
+        apellidos: delegado.usuario?.apellidos || "",
+        numDocumento: delegado.usuario?.numDocumento || "",
+        celular: delegado.usuario?.celular || "",
+        procesoId,
+        recintoId: recinto.id,
+        tipo: "titular",
+        enGrupoWhatsapp: delegado.enGrupoWhatsapp || false,
+        tieneFotocopiaCarnet: delegado.tieneFotocopiaCarnet || false,
+        agrupacionId: delegado.agrupacion?.id,
+      });
+      await eliminarDelegadoMutation.mutateAsync(delegado.id);
+      toast.success("Reserva asignado como Jefe de Recinto");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Error al asignar como jefe");
+    }
+  };
+
+  const handleMoverReservaAMesa = async (delegado: DelegadoReserva, mesa: Mesa) => {
+    try {
+      await actualizarDelegadoMutation.mutateAsync({
+        id: delegado.id,
+        data: {
+          tipo: "titular",
+          mesaId: mesa.id,
+        },
+      });
+      toast.success(`Reserva asignado a Mesa ${mesa.numero}`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Error al asignar a mesa");
+    }
+  };
+
+  const handleCloseJefeModal = (isOpen: boolean) => {
+    setShowAgregarJefe(isOpen);
+    if (!isOpen) setEditJefeData(null);
+  };
+
+  const handleCloseDelegadoModal = (isOpen: boolean) => {
+    setShowAgregarDelegado(isOpen);
+    if (!isOpen) {
+      setEditDelegadoData(null);
+      setSelectedMesa(null);
+    }
+  };
+
+  const handleCloseReservaModal = (isOpen: boolean) => {
+    setShowAgregarReserva(isOpen);
+    if (!isOpen) setEditReservaData(null);
+  };
+
+  const isMoving = registrarJefeMutation.isPending || actualizarDelegadoMutation.isPending || eliminarDelegadoMutation.isPending;
 
   return (
     <>
@@ -488,6 +811,12 @@ export function VerAsignacionesModal({
             </div>
           </DialogHeader>
 
+          {isMoving && (
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50 rounded-lg">
+              <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
+            </div>
+          )}
+
           <div className="space-y-5">
             <div className="border rounded-xl p-4 bg-muted/20 dark:bg-gray-900/50 dark:border-gray-800">
               <h3 className="text-xs font-semibold text-muted-foreground dark:text-gray-400 uppercase mb-3">
@@ -495,7 +824,11 @@ export function VerAsignacionesModal({
               </h3>
               <JefeSection
                 jefes={recinto.jefes || []}
-                onAgregar={() => setShowAgregarJefe(true)}
+                onAgregar={() => {
+                  setEditJefeData(null);
+                  setShowAgregarJefe(true);
+                }}
+                onEditar={handleEditarJefe}
               />
             </div>
 
@@ -531,6 +864,8 @@ export function VerAsignacionesModal({
                         <DelegadoCell
                           mesa={mesa}
                           onAgregar={() => handleAgregarDelegado(mesa)}
+                          onEditar={handleEditarDelegado}
+                          onMoverAReserva={handleMoverDelegadoAReserva}
                         />
                       </div>
                     </div>
@@ -546,7 +881,15 @@ export function VerAsignacionesModal({
             <div className="border rounded-xl p-4 bg-orange-50/30 dark:bg-orange-950/20 dark:border-orange-900/30">
               <ReservasSection
                 delegadosReserva={recinto.delegadosReserva || []}
-                onAgregar={() => setShowAgregarReserva(true)}
+                mesasDisponibles={mesasDisponibles}
+                hayJefe={hayJefe}
+                onAgregar={() => {
+                  setEditReservaData(null);
+                  setShowAgregarReserva(true);
+                }}
+                onEditar={handleEditarReserva}
+                onMoverAJefe={handleMoverReservaAJefe}
+                onMoverAMesa={handleMoverReservaAMesa}
               />
             </div>
           </div>
@@ -555,28 +898,31 @@ export function VerAsignacionesModal({
 
       <AgregarJefeModal
         open={showAgregarJefe}
-        onOpenChange={setShowAgregarJefe}
+        onOpenChange={handleCloseJefeModal}
         recintoId={recinto.id}
         recintoNombre={recinto.nombre}
+        editData={editJefeData}
       />
 
       {selectedMesa && (
         <AgregarDelegadoModal
           open={showAgregarDelegado}
-          onOpenChange={setShowAgregarDelegado}
+          onOpenChange={handleCloseDelegadoModal}
           mesaId={selectedMesa.id}
           mesaNumero={selectedMesa.numero}
           mesaCodigo={selectedMesa.codigo}
           recintoId={recinto.id}
           recintoNombre={recinto.nombre}
+          editData={editDelegadoData}
         />
       )}
 
       <AgregarReservaModal
         open={showAgregarReserva}
-        onOpenChange={setShowAgregarReserva}
+        onOpenChange={handleCloseReservaModal}
         recintoId={recinto.id}
         recintoNombre={recinto.nombre}
+        editData={editReservaData}
       />
     </>
   );

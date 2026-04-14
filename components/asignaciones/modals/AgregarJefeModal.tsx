@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,13 +22,17 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useProcess } from "@/lib/context/process-context";
 import { useAgrupaciones } from "@/lib/hooks/useAgrupaciones";
-import { useRegistrarJefeRecinto } from "@/lib/hooks/useJefeRecinto";
+import { useRegistrarJefeRecinto, useActualizarJefeRecinto } from "@/lib/hooks/useJefeRecinto";
+import { useUpdateUsuario } from "@/lib/hooks/useUsuarios";
+import type { JefeRecinto } from "@/lib/types/recinto";
 
 interface AgregarJefeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   recintoId: number;
   recintoNombre: string;
+  editData?: JefeRecinto | null;
+  
 }
 
 interface FormData {
@@ -39,6 +43,7 @@ interface FormData {
   enGrupoWhatsapp: boolean;
   tieneFotocopiaCarnet: boolean;
   agrupacionId: string;
+  
 }
 
 const initialFormData: FormData = {
@@ -56,11 +61,33 @@ export function AgregarJefeModal({
   onOpenChange,
   recintoId,
   recintoNombre,
+  editData,
 }: AgregarJefeModalProps) {
   const { procesoId } = useProcess();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const { data: agrupaciones, isLoading: isLoadingAgrupaciones } = useAgrupaciones();
   const registrarMutation = useRegistrarJefeRecinto();
+  const actualizarJefeMutation = useActualizarJefeRecinto();
+  const actualizarUsuarioMutation = useUpdateUsuario();
+
+  const isEditMode = !!editData;
+  const isLoading = registrarMutation.isPending || actualizarJefeMutation.isPending || actualizarUsuarioMutation.isPending;
+
+  useEffect(() => {
+    if (open && editData) {
+      setFormData({
+        nombres: editData.usuario?.nombres || "",
+        apellidos: editData.usuario?.apellidos || "",
+        numDocumento: editData.usuario?.numDocumento || "",
+        celular: editData.usuario?.celular || "",
+        enGrupoWhatsapp: editData.enGrupoWhatsapp || false,
+        tieneFotocopiaCarnet: editData.tieneFotocopiaCarnet || false,
+        agrupacionId: editData.agrupacionId?.toString() || "", 
+      });
+    } else if (open && !editData) {
+      setFormData(initialFormData);
+    }
+  }, [open, editData]);
 
   const handleClose = () => {
     setFormData(initialFormData);
@@ -78,24 +105,54 @@ export function AgregarJefeModal({
     }
 
     try {
-      await registrarMutation.mutateAsync({
-        nombres: formData.nombres,
-        apellidos: formData.apellidos,
-        numDocumento: formData.numDocumento,
-        celular: formData.celular,
-        procesoId,
-        recintoId,
-        tipo: "titular",
-        enGrupoWhatsapp: formData.enGrupoWhatsapp,
-        tieneFotocopiaCarnet: formData.tieneFotocopiaCarnet,
-        agrupacionId: formData.agrupacionId && formData.agrupacionId !== "none"
-          ? parseInt(formData.agrupacionId)
-          : undefined,
-      });
-      toast.success("Jefe de recinto registrado exitosamente");
+      if (isEditMode && editData) {
+        // Modo edición: actualizar usuario y jefe por separado
+        const usuarioId = editData.usuario?.id;
+        if (usuarioId) {
+          await actualizarUsuarioMutation.mutateAsync({
+            id: usuarioId,
+            data: {
+              nombres: formData.nombres,
+              apellidos: formData.apellidos,
+              numDocumento: formData.numDocumento,
+              celular: formData.celular,
+            },
+          });
+        }
+
+        await actualizarJefeMutation.mutateAsync({
+          id: editData.id,
+          data: {
+            enGrupoWhatsapp: formData.enGrupoWhatsapp,
+            tieneFotocopiaCarnet: formData.tieneFotocopiaCarnet,
+            agrupacionId: formData.agrupacionId && formData.agrupacionId !== "none"
+              ? parseInt(formData.agrupacionId)
+              : null,
+          },
+        });
+
+        toast.success("Jefe de recinto actualizado exitosamente");
+      } else {
+        // Modo creación
+        await registrarMutation.mutateAsync({
+          nombres: formData.nombres,
+          apellidos: formData.apellidos,
+          numDocumento: formData.numDocumento,
+          celular: formData.celular,
+          procesoId,
+          recintoId,
+          tipo: "titular",
+          enGrupoWhatsapp: formData.enGrupoWhatsapp,
+          tieneFotocopiaCarnet: formData.tieneFotocopiaCarnet,
+          agrupacionId: formData.agrupacionId && formData.agrupacionId !== "none"
+            ? parseInt(formData.agrupacionId)
+            : null,
+        });
+        toast.success("Jefe de recinto registrado exitosamente");
+      }
       handleClose();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Error al registrar jefe");
+      toast.error(error?.response?.data?.message || `Error al ${isEditMode ? "actualizar" : "registrar"} jefe`);
     }
   };
 
@@ -103,7 +160,7 @@ export function AgregarJefeModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
-          <DialogTitle>Agregar Jefe de Recinto</DialogTitle>
+          <DialogTitle>{isEditMode ? "Editar" : "Agregar"} Jefe de Recinto</DialogTitle>
           <p className="text-sm text-muted-foreground">{recintoNombre}</p>
         </DialogHeader>
 
@@ -200,13 +257,13 @@ export function AgregarJefeModal({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={registrarMutation.isPending}
+              disabled={isLoading}
               className="bg-sky-600 hover:bg-sky-700"
             >
-              {registrarMutation.isPending ? (
+              {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              Guardar
+              {isEditMode ? "Actualizar" : "Guardar"}
             </Button>
           </div>
         </div>
