@@ -1,3 +1,14 @@
+
+
+export interface Mesa {
+  id: number;
+  numero: string;
+  codigo: string;
+  totalHabilitados: number;
+  totalInhabilitados: number;
+  delegadosMesa: any[];
+}
+
 export interface Localidad {
   id: number;
   nombre: string;
@@ -7,10 +18,50 @@ export interface Localidad {
   };
 }
 
-export interface Delegados {
+export interface ResumenDelegados {
   titulares: number;
   reservas: number;
   total: number;
+}
+
+export interface JefeRecinto {
+  id: number;
+  tipo: string;
+  estado: string;
+  enGrupoWhatsapp?: boolean;
+  tieneFotocopiaCarnet?: boolean;
+  agrupacion?: {
+    id: number;
+    nombre: string;
+    sigla: string;
+  } | null;
+  usuario: {
+    id: number;
+    nombres: string;
+    apellidos: string;
+    numDocumento: string;
+    celular: string;
+  };
+}
+
+export interface DelegadoReserva {
+  id: number;
+  tipo: string;
+  estado: string;
+  enGrupoWhatsapp?: boolean;
+  tieneFotocopiaCarnet?: boolean;
+  agrupacion?: {
+    id: number;
+    nombre: string;
+    sigla: string;
+  } | null;
+  usuario: {
+    id: number;
+    nombres: string;
+    apellidos: string;
+    numDocumento: string;
+    celular: string;
+  };
 }
 
 export interface Recinto {
@@ -22,8 +73,10 @@ export interface Recinto {
   cantidadMesas: number;
   localidad: Localidad;
   distritoMunicipal: string | null;
-  jefe: string | null;
-  delegados: Delegados;
+  mesas: Mesa[];
+  jefes: JefeRecinto[];
+  delegadosReserva: DelegadoReserva[];
+  resumenDelegados?: ResumenDelegados;
 }
 
 export interface PaginationInfo {

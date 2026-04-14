@@ -14,13 +14,13 @@ import {
 } from "@/lib/api/alcances";
 import type { AlcanceBulkRequest } from "@/lib/types/alcance";
 
-// Hook único para obtener todas las listas geográficas
+
 export const useListasGeograficas = (enabled: boolean = true) => {
 	const paisesQuery = useQuery({
 		queryKey: ["paises"],
 		queryFn: getPaises,
 		enabled,
-		staleTime: 1000 * 60 * 10, // 10 minutos
+		staleTime: 1000 * 60 * 10, 
 	});
 
 	const departamentosQuery = useQuery({

@@ -28,6 +28,7 @@ import {
 	Eye,
 	EyeOff,
 	Shield,
+	 MessageSquare,
 } from "lucide-react";
 import {
 	DropdownMenu,
@@ -69,6 +70,8 @@ import type {
 	UpdateUsuarioDto,
 } from "@/lib/types/usuario";
 import { PermisosModal } from "@/components/usuarios/permisos-modal";
+import WhatsAppIcon from "@/components/whatsapp-icon";
+
 
 export default function UsersPage() {
 	const [search, setSearch] = useState("");
@@ -141,13 +144,18 @@ const handleEdit = async () => {
 	try {
 		await updateMutation.mutateAsync({ id: selectedUser.id, data: editUser });
 
-		const rolesOriginales = selectedUser.roles.map(r => r.nombre).sort().join(",");
-		const rolesNuevos = [...selectedRoles].sort().join(",");
-		if (rolesOriginales !== rolesNuevos) {
-			await reemplazarRolMutation.mutateAsync({
-				id: selectedUser.id,
-				data: { rol: selectedRoles }
-			});
+		
+		const tieneRolesPermitidos = selectedUser.roles.some(rol => ["ADMIN", "EDITOR", "VISOR"].includes(rol.nombre));
+		
+		if (tieneRolesPermitidos) {
+			const rolesOriginales = selectedUser.roles.map(r => r.nombre).sort().join(",");
+			const rolesNuevos = [...selectedRoles].sort().join(",");
+			if (rolesOriginales !== rolesNuevos) {
+				await reemplazarRolMutation.mutateAsync({
+					id: selectedUser.id,
+					data: { rol: selectedRoles }
+				});
+			}
 		}
 
 		toast.success("Usuario actualizado exitosamente");
@@ -195,17 +203,25 @@ const handleChangePassword = async () => {
 	};
 
 	const openEditModal = (user: Usuario) => {
-		setSelectedUser(user);
-		setEditUser({
-			nombres: user.nombres,
-			apellidos: user.apellidos,
-			numDocumento: user.numDocumento,
-			celular: user.celular,
-			usuario: user.usuario,
-		});
+	setSelectedUser(user);
+	setEditUser({
+		nombres: user.nombres,
+		apellidos: user.apellidos,
+		numDocumento: user.numDocumento,
+		celular: user.celular,
+		usuario: user.usuario,
+	});
+	
+	
+	const tieneRolesPermitidos = user.roles.some(rol => ["ADMIN", "EDITOR", "VISOR"].includes(rol.nombre));
+	if (tieneRolesPermitidos) {
 		setSelectedRoles(user.roles.map(r => r.nombre) || ["VISOR"]);
-		setEditModalOpen(true);
-	};
+	} else {
+		setSelectedRoles([]); 
+	}
+	
+	setEditModalOpen(true);
+};
 
 const openPasswordModal = (user: Usuario) => {
   setSelectedUser(user);
@@ -278,68 +294,20 @@ const openPermisosModal = (user: Usuario) => {
 							<Table>
 								<TableHeader>
 									<TableRow>
+										<TableHead className="text-left">Acciones</TableHead>
 										<TableHead>Usuario</TableHead>
 										<TableHead>Documento</TableHead>
 										<TableHead>Celular</TableHead>
 										<TableHead>Rol</TableHead>
 										<TableHead>Estado</TableHead>
 										<TableHead>Último Acceso</TableHead>
-										<TableHead className="text-right">Acciones</TableHead>
+										
 									</TableRow>
 								</TableHeader>
 								<TableBody>
 									{data?.data.map((user) => (
 										<TableRow key={user.id}>
-											<TableCell>
-												<div>
-													<div className="font-medium">
-														{user.nombres} {user.apellidos}
-													</div>
-													<div className="text-sm text-muted-foreground">
-														@{user.usuario}
-													</div>
-												</div>
-											</TableCell>
-											<TableCell>{user.numDocumento}</TableCell>
-											<TableCell>{user.celular}</TableCell>
-											<TableCell>
-												<div className="flex flex-wrap gap-1">
-													{user.roles.length > 0 ? (
-														user.roles.map((rol) => (
-															<Badge
-																key={rol.id}
-																variant={
-																	rol.nombre === "ADMIN"
-																		? "default"
-																		: rol.nombre === "EDITOR"
-																			? "secondary"
-																			: "outline"
-																}
-															>
-																{rol.nombre}
-															</Badge>
-														))
-													) : (
-														<Badge variant="outline">Sin rol</Badge>
-													)}
-												</div>
-											</TableCell>
-											<TableCell>
-												<Badge
-													variant={user.estado === "ACTIVO" ? "default" : "secondary"}
-													className={
-														user.estado === "ACTIVO"
-															? "bg-green-500 hover:bg-green-600"
-															: "bg-gray-500"
-													}
-												>
-													{user.estado}
-												</Badge>
-											</TableCell>
-											<TableCell className="text-muted-foreground">
-												{formatDate(user.ultimoAcceso)}
-											</TableCell>
-											<TableCell className="text-right">
+											<TableCell className="text-left">
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
 														<Button variant="ghost" size="icon">
@@ -388,6 +356,71 @@ const openPermisosModal = (user: Usuario) => {
 													</DropdownMenuContent>
 												</DropdownMenu>
 											</TableCell>
+											<TableCell>
+												<div>
+													<div className="font-medium">
+														{user.nombres} {user.apellidos}
+													</div>
+													<div className="text-sm text-muted-foreground">
+														@{user.usuario}
+													</div>
+												</div>
+											</TableCell>
+											<TableCell>{user.numDocumento}</TableCell>
+											<TableCell>
+  <div className="flex items-center gap-2">
+    <span>{user.celular}</span>
+    {user.celular && (
+      <a
+        href={`https://wa.me/591${user.celular.replace(/\D/g, '')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-green-600 hover:text-green-700 transition-colors"
+        title="Enviar mensaje por WhatsApp"
+      >
+        <WhatsAppIcon className="h-4 w-4" />
+      </a>
+    )}
+  </div>
+</TableCell>
+											<TableCell>
+												<div className="flex flex-wrap gap-1">
+													{user.roles.length > 0 ? (
+														user.roles.map((rol) => (
+															<Badge
+																key={rol.id}
+																variant={
+																	rol.nombre === "ADMIN"
+																		? "default"
+																		: rol.nombre === "EDITOR"
+																			? "secondary"
+																			: "outline"
+																}
+															>
+																{rol.nombre}
+															</Badge>
+														))
+													) : (
+														<Badge variant="outline">Sin rol</Badge>
+													)}
+												</div>
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={user.estado === "ACTIVO" ? "default" : "secondary"}
+													className={
+														user.estado === "ACTIVO"
+															? "bg-green-500 hover:bg-green-600"
+															: "bg-gray-500"
+													}
+												>
+													{user.estado}
+												</Badge>
+											</TableCell>
+											<TableCell className="text-muted-foreground">
+												{formatDate(user.ultimoAcceso)}
+											</TableCell>
+											
 										</TableRow>
 									))}
 								</TableBody>
@@ -571,30 +604,33 @@ const openPermisosModal = (user: Usuario) => {
 								onChange={(e) => setEditUser({ ...editUser, usuario: e.target.value })}
 							/>
 						</div>
-						<div className="space-y-2">
-							<Label>Roles</Label>
-							<div className="flex flex-col gap-2 p-3 border rounded-md">
-								{(["ADMIN", "EDITOR", "VISOR"] as RolNombre[]).map((rol) => (
-									<div key={rol} className="flex items-center gap-2">
-										<Checkbox
-											id={`edit-rol-${rol}`}
-											checked={selectedRoles.includes(rol)}
-											onCheckedChange={(checked: boolean) => {
-												if (checked) {
-													setSelectedRoles([...selectedRoles, rol]);
-												} else {
-													const filtered = selectedRoles.filter(r => r !== rol);
-													setSelectedRoles(filtered.length > 0 ? filtered : ["VISOR"]);
-												}
-											}}
-										/>
-										<Label htmlFor={`edit-rol-${rol}`} className="cursor-pointer font-normal">
-											{rol}
-										</Label>
-									</div>
-								))}
-							</div>
-						</div>
+						
+{selectedUser?.roles?.some(rol => ["ADMIN", "EDITOR", "VISOR"].includes(rol.nombre)) && (
+	<div className="space-y-2">
+		<Label>Roles</Label>
+		<div className="flex flex-col gap-2 p-3 border rounded-md">
+			{(["ADMIN", "EDITOR", "VISOR"] as RolNombre[]).map((rol) => (
+				<div key={rol} className="flex items-center gap-2">
+					<Checkbox
+						id={`edit-rol-${rol}`}
+						checked={selectedRoles.includes(rol)}
+						onCheckedChange={(checked: boolean) => {
+							if (checked) {
+								setSelectedRoles([...selectedRoles, rol]);
+							} else {
+								const filtered = selectedRoles.filter(r => r !== rol);
+								setSelectedRoles(filtered.length > 0 ? filtered : ["VISOR"]);
+							}
+						}}
+					/>
+					<Label htmlFor={`edit-rol-${rol}`} className="cursor-pointer font-normal">
+						{rol}
+					</Label>
+				</div>
+			))}
+		</div>
+	</div>
+)}
 					</div>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setEditModalOpen(false)}>

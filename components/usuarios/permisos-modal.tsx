@@ -381,7 +381,7 @@ export function PermisosModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
-          <DialogTitle>Asignar Permisos de Alcance</DialogTitle>
+          <DialogTitle>Asignar Permisos</DialogTitle>
           <DialogDescription>
             Asigna permisos geográficos a {usuario?.nombres}{" "}
             {usuario?.apellidos}
