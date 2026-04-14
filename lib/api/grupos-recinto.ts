@@ -4,6 +4,7 @@ import type {
   CreateGrupoRecintoDto,
   UpdateGrupoRecintoDto,
   AsignarRecintosDto,
+  QuitarRecintosDto,
 } from "@/lib/types/grupo-recinto";
 
 export async function getGruposRecinto(procesoId?: number): Promise<GrupoRecinto[]> {
@@ -30,7 +31,20 @@ export async function actualizarGrupoRecinto(
   return data;
 }
 
-export async function asignarRecintosAGrupo(
+
+export async function sincronizarRecintosAGrupo(
+  grupoId: number,
+  dto: AsignarRecintosDto
+): Promise<GrupoRecinto> {
+  const { data } = await api.patch<GrupoRecinto>(
+    `/grupos-recinto/${grupoId}/recintos/sync`,
+    dto
+  );
+  return data;
+}
+
+
+export async function agregarRecintosAGrupo(
   grupoId: number,
   dto: AsignarRecintosDto
 ): Promise<GrupoRecinto> {
@@ -41,8 +55,14 @@ export async function asignarRecintosAGrupo(
   return data;
 }
 
-export async function quitarRecintosDeGrupo(grupoId: number): Promise<void> {
-  await api.delete(`/grupos-recinto/${grupoId}/recintos`);
+
+export async function quitarRecintosDeGrupo(
+  grupoId: number,
+  recintoIds: number[]
+): Promise<void> {
+  await api.delete(`/grupos-recinto/${grupoId}/recintos`, {
+    data: { recintoIds },
+  });
 }
 
 export async function eliminarGrupoRecinto(id: number): Promise<void> {

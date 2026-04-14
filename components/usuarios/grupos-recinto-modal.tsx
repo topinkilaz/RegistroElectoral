@@ -12,25 +12,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
   Plus,
-  X,
   Search,
   Pencil,
   Trash2,
   FolderPlus,
   ChevronRight,
   MapPin,
+  Trash,
+  Check,
+  X,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useProcess } from "@/lib/context/process-context";
 import {
   useGruposRecinto,
+  useGrupoRecintoById,
   useCrearGrupoRecinto,
   useActualizarGrupoRecinto,
-  useAsignarRecintosAGrupo,
+  useSincronizarRecintosAGrupo,
   useEliminarGrupoRecinto,
+  useQuitarRecintosDeGrupo,
 } from "@/lib/hooks/useGruposRecinto";
 import { useRecintos } from "@/lib/hooks/useAlcances";
 import type { GrupoRecinto } from "@/lib/types/grupo-recinto";
@@ -56,24 +63,34 @@ export function GruposRecintoModal({
   const [selectedGrupo, setSelectedGrupo] = useState<GrupoRecinto | null>(null);
   const [formData, setFormData] = useState({ nombre: "", descripcion: "" });
   const [recintoSearch, setRecintoSearch] = useState("");
-  const [selectedRecintoIds, setSelectedRecintoIds] = useState<number[]>([]);
+  const [assignedRecintos, setAssignedRecintos] = useState<any[]>([]);
+  const [selectedToRemove, setSelectedToRemove] = useState<number[]>([]);
+  const [selectedToAdd, setSelectedToAdd] = useState<number[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteRecintosConfirm, setShowDeleteRecintosConfirm] = useState(false);
   const [grupoToDelete, setGrupoToDelete] = useState<GrupoRecinto | null>(null);
+  const [activeTab, setActiveTab] = useState<"assigned" | "search">("assigned");
 
   const { data: grupos, isLoading: isLoadingGrupos } = useGruposRecinto(
     procesoId || undefined,
     open
   );
 
+  const { data: grupoDetalle, isLoading: isLoadingGrupoDetalle } = useGrupoRecintoById(
+    viewMode === "manage-recintos" && selectedGrupo ? selectedGrupo.id : null,
+    viewMode === "manage-recintos" && !!selectedGrupo
+  );
+
   const shouldSearchRecintos = recintoSearch.length >= 3;
   const { data: recintosData, isLoading: isLoadingRecintos } = useRecintos(
     recintoSearch,
-    open && viewMode === "manage-recintos" && shouldSearchRecintos
+    open && viewMode === "manage-recintos" && shouldSearchRecintos && activeTab === "search"
   );
 
   const crearMutation = useCrearGrupoRecinto();
   const actualizarMutation = useActualizarGrupoRecinto();
-  const asignarRecintosMutation = useAsignarRecintosAGrupo();
+  const sincronizarRecintosMutation = useSincronizarRecintosAGrupo();
+  const quitarRecintosMutation = useQuitarRecintosDeGrupo();
   const eliminarMutation = useEliminarGrupoRecinto();
 
   useEffect(() => {
@@ -82,7 +99,10 @@ export function GruposRecintoModal({
       setSelectedGrupo(null);
       setFormData({ nombre: "", descripcion: "" });
       setRecintoSearch("");
-      setSelectedRecintoIds([]);
+      setAssignedRecintos([]);
+      setSelectedToRemove([]);
+      setSelectedToAdd([]);
+      setActiveTab("assigned");
     }
   }, [open]);
 
@@ -98,10 +118,60 @@ export function GruposRecintoModal({
   }, [viewMode, selectedGrupo]);
 
   useEffect(() => {
-    if (viewMode === "manage-recintos" && selectedGrupo) {
-      setSelectedRecintoIds(selectedGrupo.recintos?.map((r) => r.id) || []);
+    if (viewMode === "manage-recintos" && grupoDetalle) {
+      setAssignedRecintos(grupoDetalle.recintos || []);
+      setSelectedToRemove([]);
+      setSelectedToAdd([]);
     }
-  }, [viewMode, selectedGrupo]);
+  }, [viewMode, grupoDetalle]);
+
+  const handleEliminarRecintos = async () => {
+    if (!selectedGrupo || selectedToRemove.length === 0) return;
+
+    try {
+      await quitarRecintosMutation.mutateAsync({
+        grupoId: selectedGrupo.id,
+        recintoIds: selectedToRemove,
+      });
+      
+      setAssignedRecintos((prev) => 
+        prev.filter((r) => !selectedToRemove.includes(r.id))
+      );
+      setSelectedToRemove([]);
+      toast.success(`${selectedToRemove.length} recinto(s) eliminado(s) del grupo`);
+      setShowDeleteRecintosConfirm(false);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Error al eliminar recintos del grupo");
+    }
+  };
+
+  const handleGuardarCambios = async () => {
+    if (!selectedGrupo || selectedToAdd.length === 0) return;
+    
+    const nuevosRecintos = recintosData?.data
+      ?.filter((r: any) => selectedToAdd.includes(r.id))
+      .map((r: any) => ({
+        id: r.id,
+        nombre: r.nombre,
+        codigo: r.codigo,
+      })) || [];
+    
+    const nuevosIds = [...assignedRecintos.map(r => r.id), ...selectedToAdd];
+    
+    try {
+      await sincronizarRecintosMutation.mutateAsync({
+        grupoId: selectedGrupo.id,
+        data: { recintoIds: nuevosIds },
+      });
+      
+      setAssignedRecintos((prev) => [...prev, ...nuevosRecintos]);
+      setSelectedToAdd([]);
+      setRecintoSearch("");
+      toast.success(`${selectedToAdd.length} recinto(s) agregado(s) al grupo`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Error al agregar recintos");
+    }
+  };
 
   const handleCrear = async () => {
     if (!formData.nombre.trim()) {
@@ -149,23 +219,7 @@ export function GruposRecintoModal({
     }
   };
 
-  const handleAsignarRecintos = async () => {
-    if (!selectedGrupo) return;
-
-    try {
-      await asignarRecintosMutation.mutateAsync({
-        grupoId: selectedGrupo.id,
-        data: { recintoIds: selectedRecintoIds },
-      });
-      toast.success("Recintos asignados exitosamente");
-      setViewMode("list");
-      setSelectedGrupo(null);
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Error al asignar recintos");
-    }
-  };
-
-  const handleEliminar = async () => {
+  const handleEliminarGrupo = async () => {
     if (!grupoToDelete) return;
 
     try {
@@ -178,12 +232,40 @@ export function GruposRecintoModal({
     }
   };
 
-  const toggleRecintoSelection = (recintoId: number) => {
-    setSelectedRecintoIds((prev) =>
+  const toggleRemoveSelection = (recintoId: number) => {
+    setSelectedToRemove((prev) =>
       prev.includes(recintoId)
         ? prev.filter((id) => id !== recintoId)
         : [...prev, recintoId]
     );
+  };
+
+  const toggleAddSelection = (recintoId: number) => {
+    setSelectedToAdd((prev) =>
+      prev.includes(recintoId)
+        ? prev.filter((id) => id !== recintoId)
+        : [...prev, recintoId]
+    );
+  };
+
+  const selectAllToRemove = () => {
+    if (selectedToRemove.length === assignedRecintos.length) {
+      setSelectedToRemove([]);
+    } else {
+      setSelectedToRemove(assignedRecintos.map((r) => r.id));
+    }
+  };
+
+  const selectAllToAdd = () => {
+    const availableRecintos = recintosData?.data?.filter(
+      (r: any) => !assignedRecintos.some((a) => a.id === r.id)
+    ) || [];
+    
+    if (selectedToAdd.length === availableRecintos.length) {
+      setSelectedToAdd([]);
+    } else {
+      setSelectedToAdd(availableRecintos.map((r: any) => r.id));
+    }
   };
 
   const handleSelectGrupo = (grupo: GrupoRecinto) => {
@@ -226,7 +308,7 @@ export function GruposRecintoModal({
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium truncate">{grupo.nombre}</h4>
                     <Badge variant="secondary" className="shrink-0">
-                      {grupo.recintos?.length || 0} recintos
+                      {grupo._count?.recintos || 0} recintos
                     </Badge>
                   </div>
                   {grupo.descripcion && (
@@ -280,21 +362,6 @@ export function GruposRecintoModal({
                   <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
                 )}
               </div>
-
-              {grupo.recintos && grupo.recintos.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-2">
-                  {grupo.recintos.slice(0, 5).map((recinto) => (
-                    <Badge key={recinto.id} variant="outline" className="text-xs">
-                      {recinto.nombre}
-                    </Badge>
-                  ))}
-                  {grupo.recintos.length > 5 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{grupo.recintos.length - 5} más
-                    </Badge>
-                  )}
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -334,13 +401,13 @@ export function GruposRecintoModal({
         </div>
 
         <div className="space-y-2">
-          <Label>Descripcion (opcional)</Label>
+          <Label>Descripción (opcional)</Label>
           <Textarea
             value={formData.descripcion}
             onChange={(e) =>
               setFormData({ ...formData, descripcion: e.target.value })
             }
-            placeholder="Descripcion del grupo de recintos..."
+            placeholder="Descripción del grupo de recintos..."
             rows={3}
           />
         </div>
@@ -369,152 +436,231 @@ export function GruposRecintoModal({
     </div>
   );
 
-  const renderManageRecintosView = () => (
-    <div className="space-y-4">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => {
-          setViewMode("list");
-          setSelectedGrupo(null);
-          setRecintoSearch("");
-          setSelectedRecintoIds([]);
-        }}
-        className="mb-2"
-      >
-        <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
-        Volver
-      </Button>
+  const renderManageRecintosView = () => {
+    const availableRecintos = recintosData?.data?.filter(
+      (r: any) => !assignedRecintos.some((a) => a.id === r.id)
+    ) || [];
 
-      <div className="bg-muted/50 rounded-lg p-3">
-        <h4 className="font-medium">{selectedGrupo?.nombre}</h4>
-        {selectedGrupo?.descripcion && (
-          <p className="text-sm text-muted-foreground">{selectedGrupo.descripcion}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label>Recintos Seleccionados ({selectedRecintoIds.length})</Label>
-        {selectedRecintoIds.length > 0 ? (
-          <div className="flex flex-wrap gap-2 p-3 border rounded-lg bg-sky-50 dark:bg-sky-950/20 max-h-[150px] overflow-y-auto">
-            {selectedRecintoIds.map((id) => {
-              const recintoEnGrupo = selectedGrupo?.recintos?.find((r) => r.id === id);
-              const recintoEnBusqueda = recintosData?.data?.find((r) => r.id === id);
-              const nombre = recintoEnGrupo?.nombre || recintoEnBusqueda?.nombre || `Recinto ${id}`;
-              return (
-                <Badge
-                  key={id}
-                  variant="secondary"
-                  className="flex items-center gap-1 px-3 py-1.5"
-                >
-                  {nombre}
-                  <button
-                    type="button"
-                    onClick={() => toggleRecintoSelection(id)}
-                    className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-4 text-muted-foreground border rounded-lg bg-muted/30">
-            No hay recintos seleccionados
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label>Buscar y Agregar Recintos</Label>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar recinto (min. 3 letras)..."
-            value={recintoSearch}
-            onChange={(e) => setRecintoSearch(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-        {recintoSearch.length > 0 && recintoSearch.length < 3 && (
-          <p className="text-xs text-muted-foreground">
-            Escribe {3 - recintoSearch.length} letra(s) más para buscar...
-          </p>
-        )}
-
-        {isLoadingRecintos && (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
-        )}
-
-        {shouldSearchRecintos && recintosData?.data && recintosData.data.length > 0 && (
-          <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
-            {recintosData.data.map((recinto) => {
-              const isSelected = selectedRecintoIds.includes(recinto.id);
-              return (
-                <div
-                  key={recinto.id}
-                  className={`flex items-center justify-between p-2 cursor-pointer transition-colors ${
-                    isSelected
-                      ? "bg-sky-100 dark:bg-sky-900/30"
-                      : "hover:bg-muted/50"
-                  }`}
-                  onClick={() => toggleRecintoSelection(recinto.id)}
-                >
-                  <span className="text-sm">{recinto.nombre}</span>
-                  {isSelected ? (
-                    <Badge variant="default" className="bg-sky-600">
-                      Seleccionado
-                    </Badge>
-                  ) : (
-                    <Button variant="ghost" size="sm">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {shouldSearchRecintos &&
-          !isLoadingRecintos &&
-          recintosData?.data?.length === 0 && (
-            <p className="text-sm text-center text-muted-foreground py-4">
-              No se encontraron recintos
-            </p>
-          )}
-      </div>
-
-      <div className="flex justify-end gap-2 pt-4 border-t">
+    return (
+      <div className="space-y-4">
         <Button
-          variant="outline"
+          variant="ghost"
+          size="sm"
           onClick={() => {
             setViewMode("list");
             setSelectedGrupo(null);
+            setRecintoSearch("");
+            setAssignedRecintos([]);
+            setSelectedToRemove([]);
+            setSelectedToAdd([]);
           }}
+          className="mb-2"
         >
-          Cancelar
+          <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
+          Volver
         </Button>
-        <Button
-          onClick={handleAsignarRecintos}
-          disabled={asignarRecintosMutation.isPending}
-        >
-          {asignarRecintosMutation.isPending && (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          )}
-          Guardar Recintos
-        </Button>
+
+        {isLoadingGrupoDetalle ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : (
+          <>
+            <div className="bg-muted/50 rounded-lg p-3">
+              <h4 className="font-medium">{grupoDetalle?.nombre}</h4>
+              {grupoDetalle?.descripcion && (
+                <p className="text-sm text-muted-foreground">{grupoDetalle.descripcion}</p>
+              )}
+            </div>
+
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="assigned" className="flex items-center gap-2">
+                  <Check className="h-4 w-4" />
+                  Recintos Asignados ({assignedRecintos.length})
+                </TabsTrigger>
+                <TabsTrigger value="search" className="flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  Agregar Recintos
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="assigned" className="space-y-3 mt-4">
+                {assignedRecintos.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <Label>Selecciona recintos para eliminar</Label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={selectAllToRemove}
+                        className="h-auto py-1 text-xs"
+                      >
+                        {selectedToRemove.length === assignedRecintos.length ? "Deseleccionar todo" : "Seleccionar todo"}
+                      </Button>
+                    </div>
+                    <div className="border rounded-lg divide-y max-h-[350px] overflow-y-auto">
+                      {assignedRecintos.map((recinto) => {
+                        const isSelected = selectedToRemove.includes(recinto.id);
+                        return (
+                          <div
+                            key={recinto.id}
+                            className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
+                              isSelected
+                                ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500"
+                                : "hover:bg-muted/50"
+                            }`}
+                            onClick={() => toggleRemoveSelection(recinto.id)}
+                          >
+                            <Checkbox checked={isSelected} />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{recinto.nombre}</p>
+                              {recinto.codigo && (
+                                <p className="text-xs text-muted-foreground">Código: {recinto.codigo}</p>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <X className="h-4 w-4 text-red-500" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/30">
+                    <MapPin className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No hay recintos asignados</p>
+                    <p className="text-sm">Ve a la pestaña "Agregar Recintos" para añadir</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="search" className="space-y-3 mt-4">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar recinto por nombre o código..."
+                    value={recintoSearch}
+                    onChange={(e) => setRecintoSearch(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+
+                {recintoSearch.length > 0 && recintoSearch.length < 3 && (
+                  <p className="text-xs text-muted-foreground">
+                    Escribe {3 - recintoSearch.length} letra(s) más para buscar...
+                  </p>
+                )}
+
+                {isLoadingRecintos && (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                )}
+
+                {shouldSearchRecintos && availableRecintos.length > 0 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <Label>Selecciona recintos para agregar</Label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={selectAllToAdd}
+                        className="h-auto py-1 text-xs"
+                      >
+                        {selectedToAdd.length === availableRecintos.length ? "Deseleccionar todo" : "Seleccionar todo"}
+                      </Button>
+                    </div>
+                    <div className="border rounded-lg divide-y max-h-[350px] overflow-y-auto">
+                      {availableRecintos.map((recinto: any) => {
+                        const isSelected = selectedToAdd.includes(recinto.id);
+                        return (
+                          <div
+                            key={recinto.id}
+                            className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
+                              isSelected
+                                ? "bg-sky-50 dark:bg-sky-950/20 border-l-4 border-l-sky-500"
+                                : "hover:bg-muted/50"
+                            }`}
+                            onClick={() => toggleAddSelection(recinto.id)}
+                          >
+                            <Checkbox checked={isSelected} />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{recinto.nombre}</p>
+                              {recinto.codigo && (
+                                <p className="text-xs text-muted-foreground">Código: {recinto.codigo}</p>
+                              )}
+                            </div>
+                            {!isSelected && (
+                              <Plus className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {shouldSearchRecintos && !isLoadingRecintos && availableRecintos.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/30">
+                    <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No se encontraron recintos disponibles</p>
+                    <p className="text-sm">Todos los recintos encontrados ya están asignados</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setViewMode("list");
+                  setSelectedGrupo(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              
+              {activeTab === "assigned" && selectedToRemove.length > 0 && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowDeleteRecintosConfirm(true)}
+                  disabled={quitarRecintosMutation.isPending}
+                >
+                  {quitarRecintosMutation.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  )}
+                  <Trash className="h-4 w-4 mr-2" />
+                  Eliminar ({selectedToRemove.length})
+                </Button>
+              )}
+
+              {activeTab === "search" && selectedToAdd.length > 0 && (
+                <Button
+                  onClick={handleGuardarCambios}
+                  disabled={sincronizarRecintosMutation.isPending}
+                  className="bg-sky-600 hover:bg-sky-700"
+                >
+                  {sincronizarRecintosMutation.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  )}
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Cambios
+                </Button>
+              )}
+            </div>
+          </>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {viewMode === "list" && (selectionMode ? "Seleccionar Grupo de Recinto" : "Grupos de Recinto")}
@@ -535,10 +681,19 @@ export function GruposRecintoModal({
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        onConfirm={handleEliminar}
+        onConfirm={handleEliminarGrupo}
         title="Eliminar Grupo de Recinto"
         description={`¿Estás seguro de eliminar el grupo "${grupoToDelete?.nombre}"? Esta acción no se puede deshacer.`}
         isLoading={eliminarMutation.isPending}
+      />
+
+      <ConfirmDialog
+        open={showDeleteRecintosConfirm}
+        onOpenChange={setShowDeleteRecintosConfirm}
+        onConfirm={handleEliminarRecintos}
+        title="Eliminar Recintos del Grupo"
+        description={`¿Estás seguro de eliminar ${selectedToRemove.length} recinto(s) de este grupo? Esta acción no se puede deshacer.`}
+        isLoading={quitarRecintosMutation.isPending}
       />
     </>
   );

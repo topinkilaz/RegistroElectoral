@@ -4,7 +4,8 @@ import {
   getGrupoRecintoById,
   crearGrupoRecinto,
   actualizarGrupoRecinto,
-  asignarRecintosAGrupo,
+  sincronizarRecintosAGrupo,
+  agregarRecintosAGrupo,
   quitarRecintosDeGrupo,
   eliminarGrupoRecinto,
 } from "@/lib/api/grupos-recinto";
@@ -55,12 +56,13 @@ export function useActualizarGrupoRecinto() {
   });
 }
 
-export function useAsignarRecintosAGrupo() {
+
+export function useSincronizarRecintosAGrupo() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ grupoId, data }: { grupoId: number; data: AsignarRecintosDto }) =>
-      asignarRecintosAGrupo(grupoId, data),
+      sincronizarRecintosAGrupo(grupoId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["grupos-recinto"] });
       queryClient.invalidateQueries({ queryKey: ["grupo-recinto"] });
@@ -68,11 +70,27 @@ export function useAsignarRecintosAGrupo() {
   });
 }
 
+
+export function useAgregarRecintosAGrupo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ grupoId, data }: { grupoId: number; data: AsignarRecintosDto }) =>
+      agregarRecintosAGrupo(grupoId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grupos-recinto"] });
+      queryClient.invalidateQueries({ queryKey: ["grupo-recinto"] });
+    },
+  });
+}
+
+
 export function useQuitarRecintosDeGrupo() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (grupoId: number) => quitarRecintosDeGrupo(grupoId),
+    mutationFn: ({ grupoId, recintoIds }: { grupoId: number; recintoIds: number[] }) =>
+      quitarRecintosDeGrupo(grupoId, recintoIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["grupos-recinto"] });
       queryClient.invalidateQueries({ queryKey: ["grupo-recinto"] });
