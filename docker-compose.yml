@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    image: registro_electoral_frontend
+    container_name: registro_electoral_app
+    restart: unless-stopped
+    ports:
+      - "4601:3000"
+    env_file:
+      - .env
