@@ -48,7 +48,7 @@ export interface CreateUsuarioDto {
 	numDocumento: string;
 	celular: string;
 	estado: EstadoUsuario;
-	rol: RolNombre;
+	rol: RolNombre[];
 }
 
 export interface UpdateUsuarioDto {

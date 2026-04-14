@@ -29,20 +29,48 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/lib/context/auth-context";
+import { ROLES, type Role } from "@/lib/config/roles";
+import type { LucideIcon } from "lucide-react";
 
-const sidebarGroups = [
+interface SidebarItem {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  roles?: Role[];
+}
+
+interface SidebarGroup {
+  title: string;
+  items: SidebarItem[];
+}
+
+const sidebarGroups: SidebarGroup[] = [
   {
     title: "General",
-    items: [{ title: "Inicio", href: "/dashboard", icon: LayoutDashboard }],
+    items: [
+      {
+        title: "Inicio",
+        href: "/dashboard",
+        icon: LayoutDashboard,
+        roles: [ROLES.ADMIN, ROLES.EDITOR, ROLES.VISOR],
+      },
+    ],
   },
   {
     title: "Acciones",
     items: [
-      { title: "Usuarios", href: "/dashboard/users", icon: Users },
+      {
+        title: "Usuarios",
+        href: "/dashboard/users",
+        icon: Users,
+        roles: [ROLES.ADMIN],
+      },
       {
         title: "Asignaciones",
         href: "/dashboard/assignments",
         icon: FolderKanban,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
       },
     ],
   },
@@ -53,9 +81,20 @@ const sidebarGroups = [
         title: "Agrupaciones",
         href: "/dashboard/agrupaciones",
         icon: BarChart3,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
       },
-      { title: "Distritos", href: "/dashboard/distritos", icon: Database },
-      { title: "Recintos", href: "/dashboard/recintos-table", icon: MapPin },
+      {
+        title: "Distritos",
+        href: "/dashboard/distritos",
+        icon: Database,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
+      {
+        title: "Recintos",
+        href: "/dashboard/recintos-table",
+        icon: MapPin,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
     ],
   },
 ];
@@ -74,6 +113,20 @@ export function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
+  const { userRoles } = useAuth();
+
+  // Filtrar grupos y elementos según los roles del usuario
+  const filteredGroups = sidebarGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!item.roles) return true;
+        return item.roles.some((role) =>
+          userRoles.some((userRole) => userRole.toUpperCase() === role)
+        );
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const handleLinkClick = () => {
     if (onClose) {
@@ -225,7 +278,7 @@ export function Sidebar({
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3">
           <div className="space-y-6">
-            {sidebarGroups.map((group) => (
+            {filteredGroups.map((group) => (
               <div key={group.title}>
                 {!isCollapsed && (
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">

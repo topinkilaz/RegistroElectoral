@@ -51,6 +51,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
 	useUsuarios,
@@ -89,10 +90,10 @@ const [confirmNewPassword, setConfirmNewPassword] = useState("");
 		numDocumento: "",
 		celular: "",
 		estado: "ACTIVO",
-		rol: "VISOR",
+		rol: ["VISOR"],
 	});
 	const [editUser, setEditUser] = useState<UpdateUsuarioDto>({});
-	const [selectedRol, setSelectedRol] = useState<RolNombre>("VISOR");
+	const [selectedRoles, setSelectedRoles] = useState<RolNombre[]>(["VISOR"]);
 	const [newPassword, setNewPassword] = useState("");
 
 	const { data, isLoading, isError } = useUsuarios({
@@ -128,7 +129,7 @@ const [confirmNewPassword, setConfirmNewPassword] = useState("");
 				numDocumento: "",
 				celular: "",
 				estado: "ACTIVO",
-				rol: "VISOR",
+				rol: ["VISOR"],
 			});
 		} catch {
 			toast.error("Error al crear usuario");
@@ -139,16 +140,16 @@ const handleEdit = async () => {
 	if (!selectedUser) return;
 	try {
 		await updateMutation.mutateAsync({ id: selectedUser.id, data: editUser });
-		
-		
-		const rolOriginal = selectedUser.roles[0]?.nombre;
-		if (rolOriginal !== selectedRol) {
+
+		const rolesOriginales = selectedUser.roles.map(r => r.nombre).sort().join(",");
+		const rolesNuevos = [...selectedRoles].sort().join(",");
+		if (rolesOriginales !== rolesNuevos) {
 			await reemplazarRolMutation.mutateAsync({
 				id: selectedUser.id,
-				data: { rol: [selectedRol] }
+				data: { rol: selectedRoles }
 			});
 		}
-		
+
 		toast.success("Usuario actualizado exitosamente");
 		setEditModalOpen(false);
 		setSelectedUser(null);
@@ -202,7 +203,7 @@ const handleChangePassword = async () => {
 			celular: user.celular,
 			usuario: user.usuario,
 		});
-		setSelectedRol(user.roles[0]?.nombre || "VISOR");
+		setSelectedRoles(user.roles.map(r => r.nombre) || ["VISOR"]);
 		setEditModalOpen(true);
 	};
 
@@ -302,17 +303,26 @@ const openPermisosModal = (user: Usuario) => {
 											<TableCell>{user.numDocumento}</TableCell>
 											<TableCell>{user.celular}</TableCell>
 											<TableCell>
-												<Badge
-													variant={
-														user.roles[0]?.nombre === "ADMIN"
-															? "default"
-															: user.roles[0]?.nombre === "EDITOR"
-																? "secondary"
-																: "outline"
-													}
-												>
-													{user.roles[0]?.nombre || "Sin rol"}
-												</Badge>
+												<div className="flex flex-wrap gap-1">
+													{user.roles.length > 0 ? (
+														user.roles.map((rol) => (
+															<Badge
+																key={rol.id}
+																variant={
+																	rol.nombre === "ADMIN"
+																		? "default"
+																		: rol.nombre === "EDITOR"
+																			? "secondary"
+																			: "outline"
+																}
+															>
+																{rol.nombre}
+															</Badge>
+														))
+													) : (
+														<Badge variant="outline">Sin rol</Badge>
+													)}
+												</div>
 											</TableCell>
 											<TableCell>
 												<Badge
@@ -458,20 +468,28 @@ const openPermisosModal = (user: Usuario) => {
 						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label>Rol</Label>
-								<Select
-									value={newUser.rol}
-									onValueChange={(value: RolNombre) => setNewUser({ ...newUser, rol: value })}
-								>
-									<SelectTrigger>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="ADMIN">ADMIN</SelectItem>
-										<SelectItem value="EDITOR">EDITOR</SelectItem>
-										<SelectItem value="VISOR">VISOR</SelectItem>
-									</SelectContent>
-								</Select>
+								<Label>Roles</Label>
+								<div className="flex flex-col gap-2 p-3 border rounded-md">
+									{(["ADMIN", "EDITOR", "VISOR"] as RolNombre[]).map((rol) => (
+										<div key={rol} className="flex items-center gap-2">
+											<Checkbox
+												id={`new-rol-${rol}`}
+												checked={newUser.rol.includes(rol)}
+												onCheckedChange={(checked: boolean) => {
+													if (checked) {
+														setNewUser({ ...newUser, rol: [...newUser.rol, rol] });
+													} else {
+														const filtered = newUser.rol.filter(r => r !== rol);
+														setNewUser({ ...newUser, rol: filtered.length > 0 ? filtered : ["VISOR"] });
+													}
+												}}
+											/>
+											<Label htmlFor={`new-rol-${rol}`} className="cursor-pointer font-normal">
+												{rol}
+											</Label>
+										</div>
+									))}
+								</div>
 							</div>
 							<div className="space-y-2">
 								<Label>Estado</Label>
@@ -554,21 +572,29 @@ const openPermisosModal = (user: Usuario) => {
 							/>
 						</div>
 						<div className="space-y-2">
-	<Label>Rol</Label>
-	<Select
-		value={selectedRol}
-		onValueChange={(value: RolNombre) => setSelectedRol(value)}
-	>
-		<SelectTrigger>
-			<SelectValue />
-		</SelectTrigger>
-		<SelectContent>
-			<SelectItem value="ADMIN">ADMIN</SelectItem>
-			<SelectItem value="EDITOR">EDITOR</SelectItem>
-			<SelectItem value="VISOR">VISOR</SelectItem>
-		</SelectContent>
-	</Select>
-</div>
+							<Label>Roles</Label>
+							<div className="flex flex-col gap-2 p-3 border rounded-md">
+								{(["ADMIN", "EDITOR", "VISOR"] as RolNombre[]).map((rol) => (
+									<div key={rol} className="flex items-center gap-2">
+										<Checkbox
+											id={`edit-rol-${rol}`}
+											checked={selectedRoles.includes(rol)}
+											onCheckedChange={(checked: boolean) => {
+												if (checked) {
+													setSelectedRoles([...selectedRoles, rol]);
+												} else {
+													const filtered = selectedRoles.filter(r => r !== rol);
+													setSelectedRoles(filtered.length > 0 ? filtered : ["VISOR"]);
+												}
+											}}
+										/>
+										<Label htmlFor={`edit-rol-${rol}`} className="cursor-pointer font-normal">
+											{rol}
+										</Label>
+									</div>
+								))}
+							</div>
+						</div>
 					</div>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setEditModalOpen(false)}>

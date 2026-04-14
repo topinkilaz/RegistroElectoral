@@ -1,22 +1,39 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/context/auth-context";
+import type { Role } from "@/lib/config/roles";
 
 interface ProtectedRouteProps {
 	children: React.ReactNode;
+	allowedRoles?: Role[];
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-	const { isAuthenticated, isLoading } = useAuth();
+export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+	const { isAuthenticated, isLoading, hasRouteAccess, userRoles } = useAuth();
 	const router = useRouter();
+	const pathname = usePathname();
 
 	useEffect(() => {
 		if (!isLoading && !isAuthenticated) {
 			router.replace("/login");
+			return;
 		}
-	}, [isAuthenticated, isLoading, router]);
+
+		if (!isLoading && isAuthenticated) {
+			// Verificar acceso por roles específicos o por ruta
+			const hasAccess = allowedRoles
+				? allowedRoles.some((role) =>
+						userRoles.some((r) => r.toUpperCase() === role)
+					)
+				: hasRouteAccess(pathname);
+
+			if (!hasAccess) {
+				router.replace("/error/403");
+			}
+		}
+	}, [isAuthenticated, isLoading, router, pathname, hasRouteAccess, allowedRoles, userRoles]);
 
 	if (isLoading) {
 		return (
@@ -27,6 +44,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 	}
 
 	if (!isAuthenticated) {
+		return null;
+	}
+
+	// Verificar acceso antes de renderizar
+	const hasAccess = allowedRoles
+		? allowedRoles.some((role) =>
+				userRoles.some((r) => r.toUpperCase() === role)
+			)
+		: hasRouteAccess(pathname);
+
+	if (!hasAccess) {
 		return null;
 	}
 
