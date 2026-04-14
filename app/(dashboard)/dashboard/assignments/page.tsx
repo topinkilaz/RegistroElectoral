@@ -132,14 +132,14 @@ export default function RecintosPage() {
                       return (
                         <TableRow key={recinto.id}>
                             <TableCell className="text-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleVerAsignaciones(recinto)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Ver Asignaciones
-                            </Button>
+                           <Button
+  size="sm"
+  onClick={() => handleVerAsignaciones(recinto)}
+  className="bg-sky-600 hover:bg-sky-700 text-white"
+>
+  <Eye className="h-4 w-4 mr-1" />
+  Ver Asignaciones
+</Button>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">{recinto.nombre}</div>
