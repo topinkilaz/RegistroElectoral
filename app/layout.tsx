@@ -114,7 +114,7 @@ export default function RootLayout({
 						<ProcessProvider>
 							<ThemeProvider
 								attribute="class"
-								defaultTheme="system"
+								defaultTheme="dark"
 								enableSystem
 								disableTransitionOnChange
 							>

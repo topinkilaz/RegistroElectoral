@@ -150,7 +150,7 @@ export function Sidebar({
         className={cn(
           "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
           isActive
-            ? "bg-primary text-primary-foreground shadow-md"
+            ? "bg-sky-600 text-white shadow-md"
             : "text-muted-foreground hover:text-foreground hover:bg-muted",
           isCollapsed && "justify-center px-2 py-3",
         )}
@@ -212,11 +212,11 @@ export function Sidebar({
                 className="flex items-center gap-3 group"
                 onClick={handleLinkClick}
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md shrink-0">
-                  <LayoutDashboard className="w-5 h-5 text-primary-foreground" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-600 to-sky-700 flex items-center justify-center shadow-md shrink-0">
+                  <LayoutDashboard className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-lg font-bold truncate group-hover:text-primary transition-colors">
+                  <span className="text-lg font-bold truncate group-hover:text-sky-500 transition-colors">
                     Dashboard
                   </span>
                   <span className="text-xs text-muted-foreground">
@@ -250,10 +250,10 @@ export function Sidebar({
               <TooltipTrigger asChild>
                 <Link
                   href="/dashboard"
-                  className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md"
+                  className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-600 to-sky-700 flex items-center justify-center shadow-md"
                   onClick={handleLinkClick}
                 >
-                  <LayoutDashboard className="w-5 h-5 text-primary-foreground" />
+                  <LayoutDashboard className="w-5 h-5 text-white" />
                 </Link>
               </TooltipTrigger>
               <TooltipContent side="right">Dashboard</TooltipContent>
