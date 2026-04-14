@@ -1,171 +1,446 @@
 "use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import {
-	Activity,
-	CreditCard,
-	DollarSign,
-	Users,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Building2,
+  Users,
+  UserCheck,
+  UserX,
+  LayoutGrid,
+  Search,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Filter,
+  RotateCcw,
 } from "lucide-react";
-
-const stats = [
-	{
-		title: "Total Revenue",
-		value: "$45,231.89",
-		icon: DollarSign,
-		description: "+20.1% from last month",
-		trend: "up",
-		color: "text-emerald-600",
-		bgColor: "bg-emerald-50",
-	},
-	{
-		title: "Subscriptions",
-		value: "+2,350",
-		icon: Users,
-		description: "+180.1% from last month",
-		trend: "up",
-		color: "text-blue-600",
-		bgColor: "bg-blue-50",
-	},
-	{
-		title: "Sales",
-		value: "+12,234",
-		icon: CreditCard,
-		description: "+19% from last month",
-		trend: "up",
-		color: "text-purple-600",
-		bgColor: "bg-purple-50",
-	},
-	{
-		title: "Active Now",
-		value: "+573",
-		icon: Activity,
-		description: "+201 since last hour",
-		trend: "up",
-		color: "text-orange-600",
-		bgColor: "bg-orange-50",
-	},
-];
-
+import { useState, useMemo } from "react";
+import { useProcess } from "@/lib/context/process-context";
+import { useReporteResultado } from "@/lib/hooks/useReportes";
+import { useListasGeograficas } from "@/lib/hooks/useAlcances";
 
 export default function DashboardPage() {
-	return (
-		<div className="space-y-8">
-			{/* Header Section */}
-			<div className="flex flex-col gap-2">
-				<h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
-				<p className="text-muted-foreground text-lg">
-					Welcome back! Here&apos;s an overview of your data.
-				</p>
-			</div>
+  const { procesoId } = useProcess();
+  const [searchTerm, setSearchTerm] = useState("");
 
-			{/* Stats Grid */}
-			<div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-				{stats.map((stat) => {
-					const Icon = stat.icon;
+  // Filter states
+  const [provinciaId, setProvinciaId] = useState<number | null>(null);
+  const [circunscripcionId, setCircunscripcionId] = useState<number | null>(null);
+  const [municipioId, setMunicipioId] = useState<number | null>(null);
+  const [distritoId, setDistritoId] = useState<number | null>(null);
+  const [localidadId, setLocalidadId] = useState<number | null>(null);
 
-					return (
-						<Card
-							key={stat.title}
-							className="group hover:shadow-lg transition-all duration-200"
-						>
-							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-								<CardTitle className="text-sm font-medium text-muted-foreground">
-									{stat.title}
-								</CardTitle>
-								<div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
-									<Icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-								</div>
-							</CardHeader>
-							<CardContent className="pt-0">
-								<div className="text-3xl font-bold mb-2">{stat.value}</div>
-								<p className="text-sm text-muted-foreground leading-relaxed">
-									{stat.description}
-								</p>
-							</CardContent>
-						</Card>
-					);
-				})}
-			</div>
+  // Geographic lists for filters
+  const {
+    provincias,
+    circunscripciones,
+    municipios,
+    distritosMunicipales,
+    localidades,
+    isLoading: isLoadingListas,
+  } = useListasGeograficas(!!procesoId);
 
-			{/* Additional Content Sections */}
-			<div className="grid gap-6 lg:grid-cols-2">
-				{/* Recent Activity Card */}
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-xl font-semibold">
-							Recent Activity
-						</CardTitle>
-						<p className="text-muted-foreground">
-							Latest updates from your dashboard
-						</p>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="flex items-center gap-4 p-4 rounded-lg border">
-							<div className="w-2 h-2 rounded-full bg-green-500" />
-							<div className="flex-1">
-								<p className="font-medium">New user registered</p>
-								<p className="text-sm text-muted-foreground">2 minutes ago</p>
-							</div>
-						</div>
-						<div className="flex items-center gap-4 p-4 rounded-lg border">
-							<div className="w-2 h-2 rounded-full bg-blue-500" />
-							<div className="flex-1">
-								<p className="font-medium">Payment processed</p>
-								<p className="text-sm text-muted-foreground">5 minutes ago</p>
-							</div>
-						</div>
-						<div className="flex items-center gap-4 p-4 rounded-lg border">
-							<div className="w-2 h-2 rounded-full bg-orange-500" />
-							<div className="flex-1">
-								<p className="font-medium">System update completed</p>
-								<p className="text-sm text-muted-foreground">1 hour ago</p>
-							</div>
-						</div>
-					</CardContent>
-				</Card>
+  const { data: reporte, isLoading, error } = useReporteResultado(
+    procesoId ? {
+      procesoId,
+      provinciaId: provinciaId || undefined,
+      circunscripcionId: circunscripcionId || undefined,
+      municipioId: municipioId || undefined,
+      distritoId: distritoId || undefined,
+      localidadId: localidadId || undefined,
+    } : null
+  );
 
-				{/* Quick Actions Card */}
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-xl font-semibold">
-							Quick Actions
-						</CardTitle>
-						<p className="text-muted-foreground">Commonly used features</p>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="grid grid-cols-2 gap-4">
-							<button
-								type="button"
-								className="flex flex-col items-center justify-center gap-2 p-6 rounded-lg border hover:bg-muted transition-colors"
-							>
-								<Users className="h-6 w-6" />
-								<span className="text-sm font-medium">Add User</span>
-							</button>
-							<button
-								type="button"
-								className="flex flex-col items-center justify-center gap-2 p-6 rounded-lg border hover:bg-muted transition-colors"
-							>
-								<CreditCard className="h-6 w-6" />
-								<span className="text-sm font-medium">New Sale</span>
-							</button>
-							<button
-								type="button"
-								className="flex flex-col items-center justify-center gap-2 p-6 rounded-lg border hover:bg-muted transition-colors"
-							>
-								<Activity className="h-6 w-6" />
-								<span className="text-sm font-medium">Reports</span>
-							</button>
-							<button
-								type="button"
-								className="flex flex-col items-center justify-center gap-2 p-6 rounded-lg border hover:bg-muted transition-colors"
-							>
-								<DollarSign className="h-6 w-6" />
-								<span className="text-sm font-medium">Analytics</span>
-							</button>
-						</div>
-					</CardContent>
-				</Card>
-			</div>
-		</div>
-	);
+  const resetFilters = () => {
+    setProvinciaId(null);
+    setCircunscripcionId(null);
+    setMunicipioId(null);
+    setDistritoId(null);
+    setLocalidadId(null);
+  };
+
+  const hasActiveFilters = provinciaId || circunscripcionId || municipioId || distritoId || localidadId;
+
+  const filteredRecintos = useMemo(() => {
+    if (!reporte?.data) return [];
+    if (!searchTerm) return reporte.data;
+    return reporte.data.filter((recinto) =>
+      recinto.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [reporte?.data, searchTerm]);
+
+  if (!procesoId) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <AlertCircle className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg text-muted-foreground">Selecciona un proceso para ver el reporte</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-sky-600" />
+        <p className="text-lg text-muted-foreground">Cargando reporte...</p>
+      </div>
+    );
+  }
+
+  if (error || !reporte) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <XCircle className="h-12 w-12 text-red-500" />
+        <p className="text-lg text-muted-foreground">Error al cargar el reporte</p>
+      </div>
+    );
+  }
+
+  const { resumen } = reporte;
+
+  return (
+    <div className="space-y-6">
+      {/* Header con filtros al lado */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>
+            <p className="text-muted-foreground">
+              Resumen de cobertura de recintos y mesas
+            </p>
+          </div>
+
+          {/* Filtros en línea */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span className="text-sm font-medium">Filtros:</span>
+            </div>
+
+            {/* Provincia */}
+            <Select
+              value={provinciaId?.toString() || "all"}
+              onValueChange={(val) => setProvinciaId(val === "all" ? null : Number(val))}
+              disabled={isLoadingListas}
+            >
+              <SelectTrigger className="h-8 w-[130px] text-xs">
+                <SelectValue placeholder="Provincias" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Provincias</SelectItem>
+                {provincias.map((p) => (
+                  <SelectItem key={p.id} value={p.id.toString()}>
+                    {p.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Circunscripción */}
+            <Select
+              value={circunscripcionId?.toString() || "all"}
+              onValueChange={(val) => setCircunscripcionId(val === "all" ? null : Number(val))}
+              disabled={isLoadingListas}
+            >
+              <SelectTrigger className="h-8 w-[150px] text-xs">
+                <SelectValue placeholder="Circunscripciones" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Circunscripciones</SelectItem>
+                {circunscripciones.map((c) => (
+                  <SelectItem key={c.id} value={c.id.toString()}>
+                    Circunscripción {c.numero}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Municipio */}
+            <Select
+              value={municipioId?.toString() || "all"}
+              onValueChange={(val) => setMunicipioId(val === "all" ? null : Number(val))}
+              disabled={isLoadingListas}
+            >
+              <SelectTrigger className="h-8 w-[130px] text-xs">
+                <SelectValue placeholder="Municipios" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Municipios</SelectItem>
+                {municipios.map((m) => (
+                  <SelectItem key={m.id} value={m.id.toString()}>
+                    {m.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Distrito */}
+            <Select
+              value={distritoId?.toString() || "all"}
+              onValueChange={(val) => setDistritoId(val === "all" ? null : Number(val))}
+              disabled={isLoadingListas}
+            >
+              <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectValue placeholder="Distritos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Distritos</SelectItem>
+                {distritosMunicipales.map((d) => (
+                  <SelectItem key={d.id} value={d.id.toString()}>
+                    {d.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Localidad */}
+            <Select
+              value={localidadId?.toString() || "all"}
+              onValueChange={(val) => setLocalidadId(val === "all" ? null : Number(val))}
+              disabled={isLoadingListas}
+            >
+              <SelectTrigger className="h-8 w-[130px] text-xs">
+                <SelectValue placeholder="Localidades" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Localidades</SelectItem>
+                {localidades.map((l) => (
+                  <SelectItem key={l.id} value={l.id.toString()}>
+                    {l.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Botón limpiar filtros */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-7 px-2 text-xs"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Limpiar
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total Recintos */}
+        <Card className="border-l-4 border-l-sky-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Recintos
+            </CardTitle>
+            <Building2 className="h-5 w-5 text-sky-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{resumen.recintos.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Recintos registrados
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Recintos con Jefe */}
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Con Jefe de Recinto
+            </CardTitle>
+            <UserCheck className="h-5 w-5 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-emerald-600">
+              {resumen.recintos.conJefe.valor}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Progress value={resumen.recintos.conJefe.porcentaje} className="h-2" />
+              <span className="text-sm font-medium">{resumen.recintos.conJefe.porcentaje}%</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recintos sin Jefe */}
+        <Card className="border-l-4 border-l-red-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Sin Jefe de Recinto
+            </CardTitle>
+            <UserX className="h-5 w-5 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600">
+              {resumen.recintos.sinJefe.valor}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Progress value={resumen.recintos.sinJefe.porcentaje} className="h-2 [&>div]:bg-red-500" />
+              <span className="text-sm font-medium">{resumen.recintos.sinJefe.porcentaje}%</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cobertura de Mesas */}
+        <Card className="border-l-4 border-l-amber-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Cobertura de Mesas
+            </CardTitle>
+            <LayoutGrid className="h-5 w-5 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-600">
+              {resumen.mesas.cobertura.valor}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Progress value={resumen.mesas.cobertura.porcentaje} className="h-2 [&>div]:bg-amber-500" />
+              <span className="text-sm font-medium">{resumen.mesas.cobertura.porcentaje}%</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Reservas Card */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">Delegados Reserva</CardTitle>
+            <p className="text-sm text-muted-foreground">Personal de reserva disponible</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-orange-500" />
+            <span className="text-2xl font-bold text-orange-600">{resumen.reservas}</span>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Recintos Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg">Detalle por Recinto</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {filteredRecintos.length} de {reporte.totalRecintos} recintos
+              </p>
+            </div>
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar recinto..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-hidden">
+            <div className="max-h-[500px] overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur">
+                  <TableRow>
+                    <TableHead className="w-[40%]">Recinto</TableHead>
+                    <TableHead className="text-center">Jefe</TableHead>
+                    <TableHead className="text-center">Mesas</TableHead>
+                    <TableHead className="text-center">Cobertura</TableHead>
+                    <TableHead className="text-center">Reservas</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRecintos.length > 0 ? (
+                    filteredRecintos.map((recinto) => {
+                      const coberturaPorcentaje = recinto.mesasTotal > 0
+                        ? Math.round((recinto.mesasConDelegado / recinto.mesasTotal) * 100)
+                        : 0;
+
+                      return (
+                        <TableRow key={recinto.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <span className="truncate" title={recinto.nombre}>
+                                {recinto.nombre}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {recinto.jefe ? (
+                              <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Si
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="bg-red-100 text-red-700 hover:bg-red-200">
+                                <XCircle className="h-3 w-3 mr-1" />
+                                No
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="font-medium">
+                              {recinto.mesasConDelegado}/{recinto.mesasTotal}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Progress
+                                value={coberturaPorcentaje}
+                                className="h-2 w-16 [&>div]:bg-sky-500"
+                              />
+                              <span className="text-sm w-10">{coberturaPorcentaje}%</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {recinto.reservas > 0 ? (
+                              <Badge variant="outline" className="border-orange-300 text-orange-700">
+                                {recinto.reservas}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No se encontraron recintos
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

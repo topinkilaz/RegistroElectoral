@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, X, Search, Trash2 } from "lucide-react";
+import { Loader2, Plus, X, Search, Trash2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useProcess } from "@/lib/context/process-context";
 import {
@@ -30,6 +30,7 @@ import {
   useUsuarioAlcances,
   useEliminarAlcance,
 } from "@/lib/hooks/useAlcances";
+import { useGruposRecinto } from "@/lib/hooks/useGruposRecinto";
 import type { Usuario } from "@/lib/types/usuario";
 import type {
   NivelAlcance,
@@ -37,6 +38,7 @@ import type {
   UsuarioAlcance,
 } from "@/lib/types/alcance";
 import { NIVEL_ALCANCE_LABELS } from "@/lib/types/alcance";
+import { GruposRecintoModal } from "./grupos-recinto-modal";
 
 interface PermisosModalProps {
   open: boolean;
@@ -53,6 +55,7 @@ const NIVELES_ALCANCE: NivelAlcance[] = [
   "localidad",
   "circunscripcion",
   "recinto",
+  "grupo_recinto",
 ];
 
 export function PermisosModal({
@@ -66,6 +69,7 @@ export function PermisosModal({
   const [alcances, setAlcances] = useState<AlcanceItem[]>([]);
   const [recintoSearch, setRecintoSearch] = useState("");
   const [recintoSelectOpen, setRecintoSelectOpen] = useState(false);
+  const [showGruposModal, setShowGruposModal] = useState(false);
 
   const {
     paises,
@@ -82,6 +86,11 @@ export function PermisosModal({
   const { data: recintosData, isLoading: isLoadingRecintos } = useRecintos(
     recintoSearch,
     open && selectedNivel === "recinto" && shouldSearchRecintos,
+  );
+
+  const { data: gruposRecinto, isLoading: isLoadingGrupos } = useGruposRecinto(
+    procesoId || undefined,
+    open && selectedNivel === "grupo_recinto"
   );
 
   useEffect(() => {
@@ -127,6 +136,10 @@ export function PermisosModal({
         return (
           recintosData?.data?.map((r) => ({ id: r.id, nombre: r.nombre })) || []
         );
+      case "grupo_recinto":
+        return (
+          gruposRecinto?.map((g) => ({ id: g.id, nombre: g.nombre })) || []
+        );
       default:
         return [];
     }
@@ -140,6 +153,7 @@ export function PermisosModal({
     localidades,
     circunscripciones,
     recintosData,
+    gruposRecinto,
   ]);
 
   const getAlcanceLabel = (alcance: AlcanceItem): string => {
@@ -185,6 +199,11 @@ export function PermisosModal({
         itemName =
           recintosData?.data?.find((r) => r.id === alcance.recintoId)?.nombre ||
           `Recinto ${alcance.recintoId}`;
+        break;
+      case "grupo_recinto":
+        itemName =
+          gruposRecinto?.find((g) => g.id === alcance.grupoRecintoId)?.nombre ||
+          `Grupo ${alcance.grupoRecintoId}`;
         break;
       default:
         itemName = "Desconocido";
@@ -271,6 +290,9 @@ export function PermisosModal({
       case "recinto":
         newAlcance.recintoId = itemId;
         break;
+      case "grupo_recinto":
+        newAlcance.grupoRecintoId = itemId;
+        break;
     }
 
     const existsInNew = alcances.some((a) => {
@@ -292,6 +314,8 @@ export function PermisosModal({
           return a.circunscripcionId === itemId;
         case "recinto":
           return a.recintoId === itemId;
+        case "grupo_recinto":
+          return a.grupoRecintoId === itemId;
         default:
           return false;
       }
@@ -316,6 +340,8 @@ export function PermisosModal({
           return p.circunscripcionId === itemId;
         case "recinto":
           return p.recintoId === itemId;
+        case "grupo_recinto":
+          return p.grupoRecintoId === itemId;
         default:
           return false;
       }
@@ -378,6 +404,7 @@ export function PermisosModal({
   const isLoading = isLoadingListas || isLoadingPermisos;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
@@ -426,7 +453,64 @@ export function PermisosModal({
                       : "Selecciona un nivel primero"}
                   </Label>
 
-                  {selectedNivel === "recinto" ? (
+                  {selectedNivel === "grupo_recinto" ? (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Select
+                          value={selectedItemId}
+                          onValueChange={setSelectedItemId}
+                          disabled={isLoadingGrupos}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue
+                              placeholder={
+                                isLoadingGrupos
+                                  ? "Cargando grupos..."
+                                  : "Seleccionar grupo..."
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {currentList.length > 0 ? (
+                              currentList.map((item) => (
+                                <SelectItem
+                                  key={item.id}
+                                  value={item.id.toString()}
+                                >
+                                  {item.nombre}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="py-2 px-3 text-sm text-muted-foreground">
+                                No hay grupos creados
+                              </div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setShowGruposModal(true)}
+                          title="Gestionar Grupos de Recinto"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {currentList.length === 0 && !isLoadingGrupos && (
+                        <p className="text-xs text-muted-foreground">
+                          No hay grupos creados.{" "}
+                          <button
+                            type="button"
+                            className="text-sky-600 hover:underline"
+                            onClick={() => setShowGruposModal(true)}
+                          >
+                            Crear uno nuevo
+                          </button>
+                        </p>
+                      )}
+                    </div>
+                  ) : selectedNivel === "recinto" ? (
                     <div className="space-y-2">
                       <div className="relative">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -624,5 +708,11 @@ export function PermisosModal({
         )}
       </DialogContent>
     </Dialog>
+
+    <GruposRecintoModal
+      open={showGruposModal}
+      onOpenChange={setShowGruposModal}
+    />
+    </>
   );
 }
