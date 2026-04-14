@@ -16,18 +16,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserPlus, UserCog, Trash2, Loader2, Users, CreditCard, Pencil, ArrowRight, MoreHorizontal, UserCheck } from "lucide-react";
+import { UserPlus, UserCog, Trash2, Loader2, Users, CreditCard, Pencil, ArrowRight, MoreHorizontal, UserCheck, Repeat } from "lucide-react";
 import { toast } from "sonner";
-import { useEliminarJefeRecinto, useRegistrarJefeRecinto } from "@/lib/hooks/useJefeRecinto";
-import { useEliminarDelegadoMesa, useActualizarDelegadoMesa } from "@/lib/hooks/useDelegadoMesa";
+import { useEliminarJefeRecinto, useRegistrarJefeRecinto, useActualizarJefeRecinto, useConvertirJefeADelegado } from "@/lib/hooks/useJefeRecinto";
+import { useEliminarDelegadoMesa, useActualizarDelegadoMesa, useConvertirDelegadoAJefe } from "@/lib/hooks/useDelegadoMesa";
 import { useProcess } from "@/lib/context/process-context";
 import { AgregarJefeModal, AgregarDelegadoModal, AgregarReservaModal } from "./modals";
 import type { Recinto, Mesa, JefeRecinto, DelegadoReserva } from "@/lib/types/recinto";
 import WhatsAppIcon from "../whatsapp-icon";
 import { ConfirmDialog } from "./modals/confirm-dialog";
-import { useActualizarJefeRecinto } from "@/lib/hooks/useJefeRecinto";
 import { Switch } from "../ui/switch";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "../ui/label";
 
 interface VerAsignacionesModalProps {
   open: boolean;
@@ -69,18 +75,58 @@ function tieneJefe(jefes: JefeRecinto[]): boolean {
 
 function JefeSection({
   jefes,
+  mesasDisponibles,
   onAgregar,
   onEditar,
+  onConvertirADelegado,
 }: {
   jefes: JefeRecinto[];
+  mesasDisponibles: Mesa[];
   onAgregar: () => void;
   onEditar: (jefe: JefeRecinto) => void;
+  onConvertirADelegado: (jefe: JefeRecinto, mesaId?: number, tipo?: string) => void;
 }) {
   const eliminarMutation = useEliminarJefeRecinto();
-  const actualizarJefeMutation = useActualizarJefeRecinto(); 
+  const actualizarJefeMutation = useActualizarJefeRecinto();
+  const convertirAJefeMutation = useConvertirJefeADelegado();
   const jefe = jefes?.find(j => j.tipo === "titular") || jefes?.[0];
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [selectedMesaId, setSelectedMesaId] = useState<string>("");
+  const [convertTipo, setConvertTipo] = useState<"titular" | "reserva">("titular");
+ const [updatingWhatsapp, setUpdatingWhatsapp] = useState(false);
+  const [updatingCarnet, setUpdatingCarnet] = useState(false);
+    const handleUpdateWhatsapp = async (checked: boolean) => {
+    if (!jefe) return;
+    setUpdatingWhatsapp(true);
+    try {
+      await actualizarJefeMutation.mutateAsync({ 
+        id: jefe.id, 
+        data: { enGrupoWhatsapp: checked } 
+      });
+      toast.success("Estado actualizado");
+    } catch (error) {
+      toast.error("Error al actualizar");
+    } finally {
+      setUpdatingWhatsapp(false);
+    }
+  };
 
+  const handleUpdateCarnet = async (checked: boolean) => {
+    if (!jefe) return;
+    setUpdatingCarnet(true);
+    try {
+      await actualizarJefeMutation.mutateAsync({ 
+        id: jefe.id, 
+        data: { tieneFotocopiaCarnet: checked } 
+      });
+      toast.success("Estado actualizado");
+    } catch (error) {
+      toast.error("Error al actualizar");
+    } finally {
+      setUpdatingCarnet(false);
+    }
+  };
   const handleEliminar = async () => {
     if (!jefe?.id) return;
     try {
@@ -92,12 +138,32 @@ function JefeSection({
     }
   };
 
+  const handleConvertir = async () => {
+    if (!jefe?.id) return;
+    try {
+      await convertirAJefeMutation.mutateAsync({
+        id: jefe.id,
+        data: {
+          tipo: convertTipo,
+          mesaId: convertTipo === "titular" && selectedMesaId ? parseInt(selectedMesaId) : undefined,
+          enGrupoWhatsapp: jefe.enGrupoWhatsapp,
+          tieneFotocopiaCarnet: jefe.tieneFotocopiaCarnet,
+          agrupacionId: jefe.agrupacionId || undefined,
+        },
+      });
+      toast.success(convertTipo === "titular" ? "Jefe convertido a delegado de mesa" : "Jefe convertido a reserva");
+      setShowConvertDialog(false);
+      setSelectedMesaId("");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Error al convertir");
+    }
+  };
+
   if (jefe) {
     const nombre = getNombreCompleto(jefe);
     const celular = jefe.usuario?.celular;
     const documento = jefe.usuario?.numDocumento;
     const agrupacion = jefe.agrupacion;
-    const tieneCarnet = jefe.tieneFotocopiaCarnet;
     const whatsappNumber = celular?.replace(/\D/g, "");
 
     return (
@@ -140,46 +206,34 @@ function JefeSection({
                 )}
               </div>
 
-           
-<div className="flex items-center gap-3 mt-2">
-  <div className="flex items-center gap-2">
-    <Switch
-      checked={jefe.enGrupoWhatsapp || false}
-      onCheckedChange={async (checked) => {
-        try {
-          await actualizarJefeMutation.mutateAsync({ 
-            id: jefe.id, 
-            data: { enGrupoWhatsapp: checked } 
-          });
-          toast.success("Estado actualizado");
-        } catch (error) {
-          toast.error("Error al actualizar");
-        }
-      }}
-      disabled={actualizarJefeMutation.isPending}
-    />
-    <span className="text-sm text-muted-foreground">WhatsApp</span>
-  </div>
-  
-  <div className="flex items-center gap-2">
-    <Switch
-      checked={jefe.tieneFotocopiaCarnet || false}
-      onCheckedChange={async (checked) => {
-        try {
-          await actualizarJefeMutation.mutateAsync({ 
-            id: jefe.id, 
-            data: { tieneFotocopiaCarnet: checked } 
-          });
-          toast.success("Estado actualizado");
-        } catch (error) {
-          toast.error("Error al actualizar");
-        }
-      }}
-      disabled={actualizarJefeMutation.isPending}
-    />
-    <span className="text-sm text-muted-foreground">Fotocopia CI</span>
-  </div>
-</div>
+              <div className="flex items-center gap-3 mt-2">
+                <div className="flex items-center gap-3 mt-2">
+          <div className="flex items-center gap-2">
+            {updatingWhatsapp ? (
+              <Loader2 className="h-4 w-4 animate-spin text-sky-600" />
+            ) : (
+              <Switch
+                checked={jefe.enGrupoWhatsapp || false}
+                onCheckedChange={handleUpdateWhatsapp}
+                disabled={actualizarJefeMutation.isPending}
+              />
+            )}
+            <span className="text-sm text-muted-foreground">Grupo WhatsApp</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {updatingCarnet ? (
+              <Loader2 className="h-4 w-4 animate-spin text-sky-600" />
+            ) : (
+              <Switch
+                checked={jefe.tieneFotocopiaCarnet || false}
+                onCheckedChange={handleUpdateCarnet}
+                disabled={actualizarJefeMutation.isPending}
+              />
+            )}
+            <span className="text-sm text-muted-foreground">Fotocopia CI</span>
+          </div>
+        </div>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -191,6 +245,15 @@ function JefeSection({
             >
               <Pencil className="h-4 w-4 mr-1" />
               Editar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConvertDialog(true)}
+              className="text-amber-600 dark:text-amber-400"
+            >
+              <Repeat className="h-4 w-4 mr-1" />
+              Convertir
             </Button>
             <Button
               variant="outline"
@@ -219,6 +282,54 @@ function JefeSection({
           description="Esta acción no se puede deshacer. El jefe será removido del recinto."
           isLoading={eliminarMutation.isPending}
         />
+
+        <Dialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Convertir Jefe a Delegado</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label>Tipo de destino</Label>
+                <Select value={convertTipo} onValueChange={(v: any) => setConvertTipo(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="titular">Delegado de Mesa</SelectItem>
+                    <SelectItem value="reserva">Delegado Reserva</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {convertTipo === "titular" && (
+                <div className="space-y-2">
+                  <Label>Seleccionar Mesa</Label>
+                  <Select value={selectedMesaId} onValueChange={setSelectedMesaId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar mesa..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mesasDisponibles.map((mesa) => (
+                        <SelectItem key={mesa.id} value={mesa.id.toString()}>
+                          Mesa {mesa.numero} ({mesa.codigo})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowConvertDialog(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleConvertir} disabled={convertirAJefeMutation.isPending || (convertTipo === "titular" && !selectedMesaId)}>
+                  {convertirAJefeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  Convertir
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
@@ -249,6 +360,7 @@ interface DelegadoMesaData {
   estado?: string;
   enGrupoWhatsapp?: boolean;
   tieneFotocopiaCarnet?: boolean;
+  agrupacionId?: number | null;
   agrupacion?: { id: number; nombre: string; sigla: string } | null;
   usuario?: {
     id: number;
@@ -264,17 +376,51 @@ function DelegadoCell({
   onAgregar,
   onEditar,
   onMoverAReserva,
+  onConvertirAJefe,
 }: {
   mesa: Mesa;
   onAgregar: () => void;
   onEditar: (delegado: DelegadoMesaData, mesa: Mesa) => void;
   onMoverAReserva: (delegado: DelegadoMesaData) => void;
+  onConvertirAJefe: (delegado: DelegadoMesaData) => void;
 }) {
   const eliminarMutation = useEliminarDelegadoMesa();
-    const actualizarDelegadoMutation = useActualizarDelegadoMesa();
+  const actualizarDelegadoMutation = useActualizarDelegadoMesa();
   const [showConfirm, setShowConfirm] = useState(false);
   const [delegadoId, setDelegadoId] = useState<number | null>(null);
+   const [updatingWhatsapp, setUpdatingWhatsapp] = useState(false);
+  const [updatingCarnet, setUpdatingCarnet] = useState(false);
+ const handleUpdateWhatsapp = async (checked: boolean) => {
+    if (!titular) return;
+    setUpdatingWhatsapp(true);
+    try {
+      await actualizarDelegadoMutation.mutateAsync({ 
+        id: titular.id, 
+        data: { enGrupoWhatsapp: checked } 
+      });
+      toast.success("Estado actualizado");
+    } catch (error) {
+      toast.error("Error al actualizar");
+    } finally {
+      setUpdatingWhatsapp(false);
+    }
+  };
 
+  const handleUpdateCarnet = async (checked: boolean) => {
+    if (!titular) return;
+    setUpdatingCarnet(true);
+    try {
+      await actualizarDelegadoMutation.mutateAsync({ 
+        id: titular.id, 
+        data: { tieneFotocopiaCarnet: checked } 
+      });
+      toast.success("Estado actualizado");
+    } catch (error) {
+      toast.error("Error al actualizar");
+    } finally {
+      setUpdatingCarnet(false);
+    }
+  };
   const handleEliminar = async () => {
     if (!delegadoId) return;
     try {
@@ -294,7 +440,6 @@ function DelegadoCell({
     const celular = titular.usuario?.celular || titular.celular;
     const documento = titular.usuario?.numDocumento || titular.numDocumento;
     const agrupacion = titular.agrupacion;
-    const tieneCarnet = titular.tieneFotocopiaCarnet;
     const whatsappNumber = celular?.replace(/\D/g, "");
 
     return (
@@ -327,6 +472,10 @@ function DelegadoCell({
                   <DropdownMenuItem onClick={() => onEditar(titular, mesa)}>
                     <Pencil className="h-3.5 w-3.5 mr-2" />
                     Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onConvertirAJefe(titular)}>
+                    <UserCheck className="h-3.5 w-3.5 mr-2" />
+                    Convertir a Jefe
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onMoverAReserva(titular)}>
                     <ArrowRight className="h-3.5 w-3.5 mr-2" />
@@ -368,46 +517,31 @@ function DelegadoCell({
             )}
           </div>
 
-       
-<div className="flex items-center gap-4 pl-10 mt-1">
-  <div className="flex items-center gap-2">
-    <Switch
-      checked={titular.enGrupoWhatsapp || false}
-      onCheckedChange={async (checked) => {
-        try {
-        await actualizarDelegadoMutation.mutateAsync({ 
-  id: titular.id, 
-  data: { enGrupoWhatsapp: checked } 
-});
-          toast.success("Estado actualizado");
-        } catch (error) {
-          toast.error("Error al actualizar");
-        }
-      }}
-      
-    />
-    <span className="text-xs text-muted-foreground">WhatsApp</span>
-  </div>
-  
-  <div className="flex items-center gap-2">
-    <Switch
-      checked={titular.tieneFotocopiaCarnet || false}
-      onCheckedChange={async (checked) => {
-        try {
-          await actualizarDelegadoMutation.mutateAsync({ 
-  id: titular.id, 
-  data: { tieneFotocopiaCarnet: checked } 
-});
-          toast.success("Estado actualizado");
-        } catch (error) {
-          toast.error("Error al actualizar");
-        }
-      }}
-      
-    />
-    <span className="text-xs text-muted-foreground">Fotocopia CI</span>
-  </div>
-</div>
+          <div className="flex items-center gap-4 pl-10 mt-1">
+            <div className="flex items-center gap-2">
+            {updatingWhatsapp ? (
+              <Loader2 className="h-3 w-3 animate-spin text-sky-600" />
+            ) : (
+              <Switch
+                checked={titular.enGrupoWhatsapp || false}
+                onCheckedChange={handleUpdateWhatsapp}
+              />
+            )}
+            <span className="text-xs text-muted-foreground">WhatsApp</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {updatingCarnet ? (
+              <Loader2 className="h-3 w-3 animate-spin text-sky-600" />
+            ) : (
+              <Switch
+                checked={titular.tieneFotocopiaCarnet || false}
+                onCheckedChange={handleUpdateCarnet}
+              />
+            )}
+            <span className="text-xs text-muted-foreground">Fotocopia CI</span>
+          </div>
+        
+          </div>
         </div>
 
         <ConfirmDialog
@@ -444,6 +578,7 @@ function ReservasSection({
   onEditar,
   onMoverAJefe,
   onMoverAMesa,
+  onConvertirAJefe,
 }: {
   delegadosReserva: DelegadoReserva[];
   mesasDisponibles: Mesa[];
@@ -452,11 +587,54 @@ function ReservasSection({
   onEditar: (delegado: DelegadoReserva) => void;
   onMoverAJefe: (delegado: DelegadoReserva) => void;
   onMoverAMesa: (delegado: DelegadoReserva, mesa: Mesa) => void;
+  onConvertirAJefe: (delegado: DelegadoReserva) => void;
 }) {
   const eliminarMutation = useEliminarDelegadoMesa();
   const actualizarDelegadoMutation = useActualizarDelegadoMesa();
   const [showConfirm, setShowConfirm] = useState(false);
   const [delegadoId, setDelegadoId] = useState<number | null>(null);
+ const [updatingStates, setUpdatingStates] = useState<Record<number, { whatsapp: boolean; carnet: boolean }>>({});
+  const handleUpdateWhatsapp = async (delegadoId: number, checked: boolean) => {
+    setUpdatingStates(prev => ({
+      ...prev,
+      [delegadoId]: { ...prev[delegadoId], whatsapp: true }
+    }));
+    try {
+      await actualizarDelegadoMutation.mutateAsync({ 
+        id: delegadoId, 
+        data: { enGrupoWhatsapp: checked } 
+      });
+      toast.success("Estado actualizado");
+    } catch (error) {
+      toast.error("Error al actualizar");
+    } finally {
+      setUpdatingStates(prev => ({
+        ...prev,
+        [delegadoId]: { ...prev[delegadoId], whatsapp: false }
+      }));
+    }
+  };
+
+  const handleUpdateCarnet = async (delegadoId: number, checked: boolean) => {
+    setUpdatingStates(prev => ({
+      ...prev,
+      [delegadoId]: { ...prev[delegadoId], carnet: true }
+    }));
+    try {
+      await actualizarDelegadoMutation.mutateAsync({ 
+        id: delegadoId, 
+        data: { tieneFotocopiaCarnet: checked } 
+      });
+      toast.success("Estado actualizado");
+    } catch (error) {
+      toast.error("Error al actualizar");
+    } finally {
+      setUpdatingStates(prev => ({
+        ...prev,
+        [delegadoId]: { ...prev[delegadoId], carnet: false }
+      }));
+    }
+  };
 
   const handleEliminar = async () => {
     if (!delegadoId) return;
@@ -492,11 +670,12 @@ function ReservasSection({
       {reservas.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {reservas.map((delegado) => {
+              const isLoadingWhatsapp = updatingStates[delegado.id]?.whatsapp || false;
+    const isLoadingCarnet = updatingStates[delegado.id]?.carnet || false;
             const nombre = getNombreCompleto(delegado);
             const celular = delegado.usuario?.celular;
             const documento = delegado.usuario?.numDocumento;
             const agrupacion = delegado.agrupacion;
-            const tieneCarnet = delegado.tieneFotocopiaCarnet;
             const whatsappNumber = celular?.replace(/\D/g, "");
 
             return (
@@ -532,10 +711,14 @@ function ReservasSection({
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onConvertirAJefe(delegado)}>
+                        <UserCheck className="h-3.5 w-3.5 mr-2" />
+                        Convertir a Jefe
+                      </DropdownMenuItem>
                       {!hayJefe && (
                         <DropdownMenuItem onClick={() => onMoverAJefe(delegado)}>
                           <UserCheck className="h-3.5 w-3.5 mr-2" />
-                          Asignar como Jefe
+                          Asignar como Jefe (Registrar)
                         </DropdownMenuItem>
                       )}
                       {mesasDisponibles.length > 0 ? (
@@ -597,44 +780,30 @@ function ReservasSection({
                   )}
                 </div>
 
-                
-<div className="flex items-center gap-4 pl-11 mt-1">
-  <div className="flex items-center gap-2">
-    <Switch
-      checked={delegado.enGrupoWhatsapp || false}
-      onCheckedChange={async (checked) => {
-        try {
-          await actualizarDelegadoMutation.mutateAsync({ 
-            id: delegado.id, 
-            data: { enGrupoWhatsapp: checked } 
-          });
-          toast.success("Estado actualizado");
-        } catch (error) {
-          toast.error("Error al actualizar");
-        }
-      }}
-    />
-    <span className="text-xs text-muted-foreground">WhatsApp</span>
-  </div>
-  
-  <div className="flex items-center gap-2">
-    <Switch
-      checked={delegado.tieneFotocopiaCarnet || false}
-      onCheckedChange={async (checked) => {
-        try {
-          await actualizarDelegadoMutation.mutateAsync({ 
-            id: delegado.id, 
-            data: { tieneFotocopiaCarnet: checked } 
-          });
-          toast.success("Estado actualizado");
-        } catch (error) {
-          toast.error("Error al actualizar");
-        }
-      }}
-    />
-    <span className="text-xs text-muted-foreground">Fotocopia CI</span>
-  </div>
-</div>
+                <div className="flex items-center gap-4 pl-11 mt-1">
+                    <div className="flex items-center gap-2">
+            {isLoadingWhatsapp ? (
+              <Loader2 className="h-3 w-3 animate-spin text-sky-600" />
+            ) : (
+              <Switch
+                checked={delegado.enGrupoWhatsapp || false}
+                onCheckedChange={(checked) => handleUpdateWhatsapp(delegado.id, checked)}
+              />
+            )}
+            <span className="text-xs text-muted-foreground">WhatsApp</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isLoadingCarnet ? (
+              <Loader2 className="h-3 w-3 animate-spin text-sky-600" />
+            ) : (
+              <Switch
+                checked={delegado.tieneFotocopiaCarnet || false}
+                onCheckedChange={(checked) => handleUpdateCarnet(delegado.id, checked)}
+              />
+            )}
+            <span className="text-xs text-muted-foreground">Fotocopia CI</span>
+          </div>
+                </div>
               </div>
             );
           })}
@@ -676,9 +845,8 @@ export function VerAsignacionesModal({
   const actualizarDelegadoMutation = useActualizarDelegadoMesa();
   const eliminarDelegadoMutation = useEliminarDelegadoMesa();
   const actualizarJefeMutation = useActualizarJefeRecinto();
- 
-
-
+  const convertirJefeADelegadoMutation = useConvertirJefeADelegado();
+  const convertirDelegadoAJefeMutation = useConvertirDelegadoAJefe();
 
   if (!recinto) return null;
 
@@ -722,13 +890,15 @@ export function VerAsignacionesModal({
     }
   };
 
+
+
   const handleMoverReservaAJefe = async (delegado: DelegadoReserva) => {
     if (!procesoId) {
       toast.error("No hay proceso seleccionado");
       return;
     }
     try {
-      await registrarJefeMutation.mutateAsync({
+            await registrarJefeMutation.mutateAsync({
         nombres: delegado.usuario?.nombres || "",
         apellidos: delegado.usuario?.apellidos || "",
         numDocumento: delegado.usuario?.numDocumento || "",
@@ -761,7 +931,45 @@ export function VerAsignacionesModal({
       toast.error(error?.response?.data?.message || "Error al asignar a mesa");
     }
   };
+const handleConvertirJefeADelegado = async (jefe: JefeRecinto, mesaId?: number, tipo?: string) => {
+  try {
+    await convertirJefeADelegadoMutation.mutateAsync({
+      id: jefe.id,
+      data: {
+        tipo: tipo || "titular",
+        mesaId: mesaId,
+        enGrupoWhatsapp: jefe.enGrupoWhatsapp,
+        tieneFotocopiaCarnet: jefe.tieneFotocopiaCarnet,
+        agrupacionId: jefe.agrupacionId || undefined,
+      },
+    });
+    toast.success(tipo === "titular" ? "Jefe convertido a delegado de mesa" : "Jefe convertido a reserva");
+  } catch (error: any) {
+    toast.error(error?.response?.data?.message || "Error al convertir jefe");
+  }
+};
 
+
+const handleConvertirDelegadoAJefe = async (delegado: DelegadoMesaData | DelegadoReserva) => {
+  if (!procesoId) {
+    toast.error("No hay proceso seleccionado");
+    return;
+  }
+  try {
+    await convertirDelegadoAJefeMutation.mutateAsync({
+      id: delegado.id,
+      data: {
+        tipo: "titular",
+        enGrupoWhatsapp: delegado.enGrupoWhatsapp || false,
+        tieneFotocopiaCarnet: delegado.tieneFotocopiaCarnet || false,
+        agrupacionId: delegado.agrupacionId || delegado.agrupacion?.id || undefined,
+      },
+    });
+    toast.success("Delegado convertido a Jefe de Recinto");
+  } catch (error: any) {
+    toast.error(error?.response?.data?.message || "Error al convertir a jefe");
+  }
+};
   const handleCloseJefeModal = (isOpen: boolean) => {
     setShowAgregarJefe(isOpen);
     if (!isOpen) setEditJefeData(null);
@@ -780,8 +988,7 @@ export function VerAsignacionesModal({
     if (!isOpen) setEditReservaData(null);
   };
 
-  const isMoving = registrarJefeMutation.isPending || actualizarDelegadoMutation.isPending || eliminarDelegadoMutation.isPending;
-
+const isMoving = registrarJefeMutation.isPending || actualizarDelegadoMutation.isPending || eliminarDelegadoMutation.isPending || convertirJefeADelegadoMutation.isPending || convertirDelegadoAJefeMutation.isPending;
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -824,11 +1031,13 @@ export function VerAsignacionesModal({
               </h3>
               <JefeSection
                 jefes={recinto.jefes || []}
+                mesasDisponibles={mesasDisponibles}
                 onAgregar={() => {
                   setEditJefeData(null);
                   setShowAgregarJefe(true);
                 }}
                 onEditar={handleEditarJefe}
+                onConvertirADelegado={handleConvertirJefeADelegado}
               />
             </div>
 
@@ -866,6 +1075,7 @@ export function VerAsignacionesModal({
                           onAgregar={() => handleAgregarDelegado(mesa)}
                           onEditar={handleEditarDelegado}
                           onMoverAReserva={handleMoverDelegadoAReserva}
+                          onConvertirAJefe={handleConvertirDelegadoAJefe}
                         />
                       </div>
                     </div>
@@ -890,6 +1100,7 @@ export function VerAsignacionesModal({
                 onEditar={handleEditarReserva}
                 onMoverAJefe={handleMoverReservaAJefe}
                 onMoverAMesa={handleMoverReservaAMesa}
+                onConvertirAJefe={handleConvertirDelegadoAJefe}
               />
             </div>
           </div>

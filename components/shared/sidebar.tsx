@@ -67,7 +67,7 @@ const sidebarGroups: SidebarGroup[] = [
         roles: [ROLES.ADMIN],
       },
       {
-        title: "Recintos del Usuario",
+        title: "Mis recintos",
         href: "/dashboard/assignments",
         icon: FolderKanban,
         roles: [ROLES.ADMIN, ROLES.EDITOR],

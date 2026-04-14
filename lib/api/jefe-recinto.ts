@@ -14,3 +14,7 @@ export async function actualizarJefeRecinto(id: number, dto: UpdateJefeRecintoDt
 export async function eliminarJefeRecinto(id: number): Promise<void> {
   await api.delete(`/jefe-recinto/${id}`);
 }
+export async function convertirJefeADelegado(id: number, data: { tipo: string; mesaId?: number; enGrupoWhatsapp?: boolean; tieneFotocopiaCarnet?: boolean; agrupacionId?: number }): Promise<any> {
+  const { data: response } = await api.post(`/jefe-recinto/${id}/convertir-a-delegado`, data);
+  return response;
+}
