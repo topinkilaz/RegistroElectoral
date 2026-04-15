@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { registrarJefeRecinto, actualizarJefeRecinto, eliminarJefeRecinto, convertirJefeADelegado } from "@/lib/api/jefe-recinto";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { registrarJefeRecinto, actualizarJefeRecinto, eliminarJefeRecinto, convertirJefeADelegado, getMisDatosJefeRecinto } from "@/lib/api/jefe-recinto";
 import type { CreateJefeRecintoDto, UpdateJefeRecintoDto } from "@/lib/types/jefe-recinto";
 
 export function useRegistrarJefeRecinto() {
@@ -44,5 +44,14 @@ export function useConvertirJefeADelegado() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recintos-usuario"] });
     },
+  });
+}
+
+export function useMisDatosJefeRecinto(enabled: boolean = true) {
+  return useQuery({
+    queryKey: ["mis-datos-jefe-recinto"],
+    queryFn: getMisDatosJefeRecinto,
+    enabled,
+    staleTime: 1000 * 60 * 5,
   });
 }

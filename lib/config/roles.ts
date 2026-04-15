@@ -3,6 +3,8 @@ export const ROLES = {
 	ADMIN: "ADMIN",
 	EDITOR: "EDITOR",
 	VISOR: "VISOR",
+	DELEGADO: "DELEGADO",
+	JEFE_RECINTO: "JEFE_RECINTO",
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
@@ -29,6 +31,9 @@ export const ROUTE_PERMISSIONS: Record<string, Role[]> = {
 
 	// Settings - admin y editor
 	"/dashboard/settings": [ROLES.ADMIN, ROLES.EDITOR],
+
+	// Mi Asignación - solo delegados y jefes de recinto
+	"/mi-asignacion": [ROLES.DELEGADO, ROLES.JEFE_RECINTO],
 };
 
 
@@ -53,6 +58,8 @@ export function getPrimaryRole(roles: string[]): Role | null {
 	if (upperRoles.includes(ROLES.ADMIN)) return ROLES.ADMIN;
 	if (upperRoles.includes(ROLES.EDITOR)) return ROLES.EDITOR;
 	if (upperRoles.includes(ROLES.VISOR)) return ROLES.VISOR;
+	if (upperRoles.includes(ROLES.JEFE_RECINTO)) return ROLES.JEFE_RECINTO;
+	if (upperRoles.includes(ROLES.DELEGADO)) return ROLES.DELEGADO;
 
 	return null;
 }

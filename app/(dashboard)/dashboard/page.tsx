@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -33,24 +34,26 @@ import {
   AlertCircle,
   Filter,
   RotateCcw,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useProcess } from "@/lib/context/process-context";
 import { useReporteResultado } from "@/lib/hooks/useReportes";
 import { useListasGeograficas } from "@/lib/hooks/useAlcances";
+import { api } from "@/lib/api/axios";
 
 export default function DashboardPage() {
   const { procesoId } = useProcess();
   const [searchTerm, setSearchTerm] = useState("");
+  const [incluirVacios, setIncluirVacios] = useState<boolean>(true);
+  const [isExporting, setIsExporting] = useState(false);
 
-  // Filter states
   const [provinciaId, setProvinciaId] = useState<number | null>(null);
   const [circunscripcionId, setCircunscripcionId] = useState<number | null>(null);
   const [municipioId, setMunicipioId] = useState<number | null>(null);
   const [distritoId, setDistritoId] = useState<number | null>(null);
   const [localidadId, setLocalidadId] = useState<number | null>(null);
 
-  // Geographic lists for filters
   const {
     provincias,
     circunscripciones,
@@ -77,6 +80,40 @@ export default function DashboardPage() {
     setMunicipioId(null);
     setDistritoId(null);
     setLocalidadId(null);
+  };
+
+  const handleExportExcel = async () => {
+    if (!procesoId) return;
+    
+    setIsExporting(true);
+    try {
+      const response = await api.post(
+        "/reportes/file/csv/recintos",
+        {
+          procesoId: procesoId,
+          provinciaId: provinciaId || 0,
+          circunscripcionId: circunscripcionId || 0,
+          municipioId: municipioId || 0,
+          distritoId: distritoId || 0,
+          localidadId: localidadId || 0,
+          incluirVacios: incluirVacios,
+        },
+        { responseType: "blob" }
+      );
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `reporte_recintos_${new Date().getTime()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error al exportar:", error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const hasActiveFilters = provinciaId || circunscripcionId || municipioId || distritoId || localidadId;
@@ -120,7 +157,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header con filtros al lado */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div>
@@ -130,14 +166,12 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Filtros en línea */}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1 text-muted-foreground">
               <Filter className="h-4 w-4" />
               <span className="text-sm font-medium">Filtros:</span>
             </div>
 
-            {/* Provincia */}
             <Select
               value={provinciaId?.toString() || "all"}
               onValueChange={(val) => setProvinciaId(val === "all" ? null : Number(val))}
@@ -156,7 +190,6 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
 
-            {/* Circunscripción */}
             <Select
               value={circunscripcionId?.toString() || "all"}
               onValueChange={(val) => setCircunscripcionId(val === "all" ? null : Number(val))}
@@ -175,7 +208,6 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
 
-            {/* Municipio */}
             <Select
               value={municipioId?.toString() || "all"}
               onValueChange={(val) => setMunicipioId(val === "all" ? null : Number(val))}
@@ -194,7 +226,6 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
 
-            {/* Distrito */}
             <Select
               value={distritoId?.toString() || "all"}
               onValueChange={(val) => setDistritoId(val === "all" ? null : Number(val))}
@@ -213,7 +244,6 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
 
-            {/* Localidad */}
             <Select
               value={localidadId?.toString() || "all"}
               onValueChange={(val) => setLocalidadId(val === "all" ? null : Number(val))}
@@ -232,7 +262,6 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
 
-            {/* Botón limpiar filtros */}
             {hasActiveFilters && (
               <Button
                 variant="ghost"
@@ -246,11 +275,43 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="incluirVacios"
+              checked={incluirVacios}
+              onCheckedChange={(checked) => setIncluirVacios(checked as boolean)}
+            />
+            <label
+              htmlFor="incluirVacios"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Incluir vacíos
+            </label>
+          </div>
+
+          <Button
+            onClick={handleExportExcel}
+            disabled={isExporting || !procesoId}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Exportando...
+              </>
+            ) : (
+              <>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Exportar recintos informe
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Recintos */}
         <Card className="border-l-4 border-l-sky-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -266,7 +327,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Recintos con Jefe */}
         <Card className="border-l-4 border-l-emerald-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -285,7 +345,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Recintos sin Jefe */}
         <Card className="border-l-4 border-l-red-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -304,7 +363,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Cobertura de Mesas */}
         <Card className="border-l-4 border-l-amber-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -324,7 +382,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Reservas Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -338,7 +395,6 @@ export default function DashboardPage() {
         </CardHeader>
       </Card>
 
-      {/* Recintos Table */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { registrarDelegadoMesa, actualizarDelegadoMesa, eliminarDelegadoMesa, convertirDelegadoAJefe } from "@/lib/api/delegado-mesa";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { registrarDelegadoMesa, actualizarDelegadoMesa, eliminarDelegadoMesa, convertirDelegadoAJefe, getMisDatosDelegado } from "@/lib/api/delegado-mesa";
 import type { CreateDelegadoMesaDto, UpdateDelegadoMesaDto } from "@/lib/types/delegado-mesa";
 
 export function useRegistrarDelegadoMesa() {
@@ -45,5 +45,14 @@ export function useConvertirDelegadoAJefe() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recintos-usuario"] });
     },
+  });
+}
+
+export function useMisDatosDelegado(enabled: boolean = true) {
+  return useQuery({
+    queryKey: ["mis-datos-delegado"],
+    queryFn: getMisDatosDelegado,
+    enabled,
+    staleTime: 1000 * 60 * 5,
   });
 }

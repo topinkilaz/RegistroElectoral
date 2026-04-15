@@ -1,5 +1,5 @@
 import { api } from "./axios";
-import type { JefeRecinto, CreateJefeRecintoDto, UpdateJefeRecintoDto } from "@/lib/types/jefe-recinto";
+import type { JefeRecinto, CreateJefeRecintoDto, UpdateJefeRecintoDto, MisDatosJefeRecinto } from "@/lib/types/jefe-recinto";
 
 export async function registrarJefeRecinto(dto: CreateJefeRecintoDto): Promise<JefeRecinto> {
   const { data } = await api.post("/jefe-recinto/registrar", dto);
@@ -17,4 +17,9 @@ export async function eliminarJefeRecinto(id: number): Promise<void> {
 export async function convertirJefeADelegado(id: number, data: { tipo: string; mesaId?: number; enGrupoWhatsapp?: boolean; tieneFotocopiaCarnet?: boolean; agrupacionId?: number }): Promise<any> {
   const { data: response } = await api.post(`/jefe-recinto/${id}/convertir-a-delegado`, data);
   return response;
+}
+
+export async function getMisDatosJefeRecinto(): Promise<MisDatosJefeRecinto[]> {
+  const { data } = await api.get<MisDatosJefeRecinto[]>("/jefe-recinto/mis-datos");
+  return data;
 }

@@ -78,6 +78,12 @@ const sidebarGroups: SidebarGroup[] = [
     title: "Otros",
     items: [
       {
+        title: "Duplicados",
+        href: "/dashboard/duplicados",
+        icon: AlertCircle,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
+      {
         title: "Agrupaciones",
         href: "/dashboard/agrupaciones",
         icon: BarChart3,

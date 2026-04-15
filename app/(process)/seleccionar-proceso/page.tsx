@@ -8,6 +8,7 @@ import { Loader2, Vote, MapPin, Calendar, CheckCircle2 } from "lucide-react";
 import { useProcesos } from "@/lib/hooks/useProcesos";
 import { useProcess } from "@/lib/context/process-context";
 import { useAuth } from "@/lib/context/auth-context";
+import { ROLES } from "@/lib/config/roles";
 import type { Proceso } from "@/lib/types/proceso";
 import { cn } from "@/lib/utils";
 
@@ -15,13 +16,37 @@ export default function SeleccionarProcesoPage() {
 	const router = useRouter();
 	const { data, isLoading, isError } = useProcesos();
 	const { setProceso, hasSelectedProceso } = useProcess();
-	const { user } = useAuth();
+	const { user, userRoles, isLoading: isAuthLoading } = useAuth();
+
+	// Check if user has ONLY DELEGADO or JEFE_RECINTO roles (without ADMIN, EDITOR, VISOR)
+	const upperRoles = userRoles.map((r) => r.toUpperCase());
+	const hasAdminRoles = upperRoles.some(
+		(role) =>
+			role === ROLES.ADMIN ||
+			role === ROLES.EDITOR ||
+			role === ROLES.VISOR
+	);
+	const hasDelegadoOrJefe = upperRoles.some(
+		(role) =>
+			role === ROLES.DELEGADO ||
+			role === ROLES.JEFE_RECINTO
+	);
+	// Only redirect if user has DELEGADO/JEFE_RECINTO and NO admin roles
+	const isDelegadoOrJefeOnly = hasDelegadoOrJefe && !hasAdminRoles;
 
 	useEffect(() => {
+		if (isAuthLoading) return;
+
+		// If user ONLY has DELEGADO or JEFE_RECINTO roles, redirect to mi-asignacion
+		if (isDelegadoOrJefeOnly) {
+			router.replace("/mi-asignacion");
+			return;
+		}
+
 		if (hasSelectedProceso) {
 			router.replace("/dashboard");
 		}
-	}, [hasSelectedProceso, router]);
+	}, [hasSelectedProceso, router, isDelegadoOrJefeOnly, isAuthLoading]);
 
 	const handleSelectProceso = (proceso: Proceso) => {
 		if (proceso.estado !== "ACTIVO") return;
@@ -52,7 +77,7 @@ export default function SeleccionarProcesoPage() {
 		}
 	};
 
-	if (hasSelectedProceso) {
+	if (hasSelectedProceso || isDelegadoOrJefeOnly || isAuthLoading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
 				<Loader2 className="h-8 w-8 animate-spin" />
