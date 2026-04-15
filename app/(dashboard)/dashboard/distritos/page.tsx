@@ -57,6 +57,8 @@ import type {
   DistritoMunicipal,
   UpdateDistritoDto,
 } from "@/lib/types/distritos";
+import { FileBarChart2 } from "lucide-react";
+import ReportesDistritoModal from "@/components/distritos/ReportesDistritoModal";
 
 export default function DistritosPage() {
   const [search, setSearch] = useState("");
@@ -66,6 +68,7 @@ export default function DistritosPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedDistrito, setSelectedDistrito] =
     useState<DistritoMunicipal | null>(null);
+    const [reportesModalOpen, setReportesModalOpen] = useState(false);
 
   const [newDistrito, setNewDistrito] = useState({
     nombre: "",
@@ -85,7 +88,7 @@ export default function DistritosPage() {
   const updateMutation = useUpdateDistrito();
   const deleteMutation = useDeleteDistrito();
 
-  // Filtrar distritos localmente por búsqueda
+
   const filteredDistritos = useMemo(() => {
     if (!distritos) return [];
     if (!searchTerm) return distritos;
@@ -204,31 +207,42 @@ export default function DistritosPage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Todos los Distritos</CardTitle>
-          <div className="flex items-center gap-4 w-1/3">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nombre, código o municipio..."
-                className="pl-8 pr-8"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-              {search && (
-                <button
-                  onClick={handleClearSearch}
-                  className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <Button onClick={handleSearch} size="sm">
-              Buscar
-            </Button>
-          </div>
-        </CardHeader>
+  <CardTitle>Todos los Distritos</CardTitle>
+  <div className="flex items-center gap-3 w-auto">
+    <Button
+      variant="outline"
+      onClick={() => setReportesModalOpen(true)}
+      className="flex items-center gap-2"
+      disabled={!distritos || distritos.length === 0}
+    >
+      <FileBarChart2 className="h-4 w-4" />
+      Reportes
+    </Button>
+    <div className="flex items-center gap-2">
+      <div className="relative flex-1 w-64">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nombre, código o municipio..."
+          className="pl-8 pr-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        {search && (
+          <button
+            onClick={handleClearSearch}
+            className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      <Button onClick={handleSearch} size="sm">
+        Buscar
+      </Button>
+    </div>
+  </div>
+</CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
@@ -478,6 +492,12 @@ export default function DistritosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ReportesDistritoModal
+  open={reportesModalOpen}
+  onOpenChange={setReportesModalOpen}
+  distritos={distritos || []}
+  defaultProcesoId={1} 
+/>
     </div>
   );
 }
