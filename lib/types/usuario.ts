@@ -69,3 +69,28 @@ export interface CambiarEstadoDto {
 export interface ReemplazarRolDto {
 	rol: RolNombre[];
 }
+
+// Verificación de usuario
+export interface UsuarioVerificacionInfo {
+	id: number;
+	nombres: string;
+	apellidos: string;
+	numDocumento: string;
+	celular?: string;
+}
+
+export interface VerificarUsuarioResponse {
+	ci: {
+		existe: boolean;
+		usuario: UsuarioVerificacionInfo | null;
+	};
+	celular: {
+		enUso: boolean;
+		usuarios: UsuarioVerificacionInfo[];
+	};
+}
+
+export interface VerificarUsuarioParams {
+	numDocumento?: string;
+	celular?: string;
+}

@@ -576,7 +576,7 @@ function ReservasSection({
   hayJefe,
   onAgregar,
   onEditar,
-  onMoverAJefe,
+
   onMoverAMesa,
   onConvertirAJefe,
 }: {
@@ -585,7 +585,6 @@ function ReservasSection({
   hayJefe: boolean;
   onAgregar: () => void;
   onEditar: (delegado: DelegadoReserva) => void;
-  onMoverAJefe: (delegado: DelegadoReserva) => void;
   onMoverAMesa: (delegado: DelegadoReserva, mesa: Mesa) => void;
   onConvertirAJefe: (delegado: DelegadoReserva) => void;
 }) {
@@ -715,12 +714,7 @@ function ReservasSection({
                         <UserCheck className="h-3.5 w-3.5 mr-2" />
                         Convertir a Jefe
                       </DropdownMenuItem>
-                      {!hayJefe && (
-                        <DropdownMenuItem onClick={() => onMoverAJefe(delegado)}>
-                          <UserCheck className="h-3.5 w-3.5 mr-2" />
-                          Asignar como Jefe (Registrar)
-                        </DropdownMenuItem>
-                      )}
+                     
                       {mesasDisponibles.length > 0 ? (
                         <>
                           <DropdownMenuSeparator />
@@ -892,30 +886,6 @@ export function VerAsignacionesModal({
 
 
 
-  const handleMoverReservaAJefe = async (delegado: DelegadoReserva) => {
-    if (!procesoId) {
-      toast.error("No hay proceso seleccionado");
-      return;
-    }
-    try {
-            await registrarJefeMutation.mutateAsync({
-        nombres: delegado.usuario?.nombres || "",
-        apellidos: delegado.usuario?.apellidos || "",
-        numDocumento: delegado.usuario?.numDocumento || "",
-        celular: delegado.usuario?.celular || "",
-        procesoId,
-        recintoId: recinto.id,
-        tipo: "titular",
-        enGrupoWhatsapp: delegado.enGrupoWhatsapp || false,
-        tieneFotocopiaCarnet: delegado.tieneFotocopiaCarnet || false,
-        agrupacionId: delegado.agrupacion?.id,
-      });
-      await eliminarDelegadoMutation.mutateAsync(delegado.id);
-      toast.success("Reserva asignado como Jefe de Recinto");
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Error al asignar como jefe");
-    }
-  };
 
   const handleMoverReservaAMesa = async (delegado: DelegadoReserva, mesa: Mesa) => {
     try {
@@ -1098,7 +1068,7 @@ const isMoving = registrarJefeMutation.isPending || actualizarDelegadoMutation.i
                   setShowAgregarReserva(true);
                 }}
                 onEditar={handleEditarReserva}
-                onMoverAJefe={handleMoverReservaAJefe}
+              
                 onMoverAMesa={handleMoverReservaAMesa}
                 onConvertirAJefe={handleConvertirDelegadoAJefe}
               />

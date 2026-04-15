@@ -8,6 +8,8 @@ import type {
 	CambiarEstadoDto,
 	Usuario,
 	ReemplazarRolDto,
+	VerificarUsuarioResponse,
+	VerificarUsuarioParams,
 } from "@/lib/types/usuario";
 
 export async function getUsuarios(params?: UsuariosParams): Promise<UsuariosResponse> {
@@ -35,5 +37,10 @@ export async function cambiarEstado(id: number, dto: CambiarEstadoDto): Promise<
 }
 export async function reemplazarRol(id: number, dto: ReemplazarRolDto): Promise<Usuario> {
 	const { data } = await api.post(`/usuarios/${id}/reemplazar-rol`, dto);
+	return data;
+}
+
+export async function verificarUsuario(params: VerificarUsuarioParams): Promise<VerificarUsuarioResponse> {
+	const { data } = await api.get<VerificarUsuarioResponse>("/usuarios/verificar", { params });
 	return data;
 }

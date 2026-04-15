@@ -212,68 +212,58 @@ function EmptyState() {
 
 function ResumenTab({ data }: { data: any }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-xs font-medium flex items-center gap-1.5">
-            <Building2 className="h-3.5 w-3.5" /> Recintos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="py-2 px-3 space-y-1 text-xs">
-          <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span className="font-semibold">{data.recintos.total}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Con jefe</span><span className="font-semibold text-green-600">{data.recintos.conJefe.valor} <span className="font-normal">({data.recintos.conJefe.porcentaje}%)</span></span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Sin jefe</span><span className="font-semibold text-red-500">{data.recintos.sinJefe.valor} <span className="font-normal">({data.recintos.sinJefe.porcentaje}%)</span></span></div>
-        </CardContent>
-      </Card>
+    <div className="space-y-1">
+      <div className="flex items-center justify-between py-1.5 border-b">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium">Recintos</span>
+        </div>
+        <div className="flex gap-4 text-xs">
+          <span>Total: <span className="font-semibold">{data.recintos.total}</span></span>
+          <span className="text-green-600">Con jefe: {data.recintos.conJefe.valor} ({data.recintos.conJefe.porcentaje}%)</span>
+          <span className="text-red-500">Sin jefe: {data.recintos.sinJefe.valor} ({data.recintos.sinJefe.porcentaje}%)</span>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-xs font-medium">Mesas</CardTitle>
-        </CardHeader>
-        <CardContent className="py-2 px-3 space-y-1 text-xs">
-          <div className="flex justify-between"><span className="text-muted-foreground">Cubiertas</span><span className="font-semibold text-green-600">{data.mesas.cobertura.cubiertas}/{data.mesas.cobertura.total} <span className="font-normal">({data.mesas.cobertura.porcentaje}%)</span></span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Vacías</span><span className="font-semibold text-red-500">{data.mesas.vacias}</span></div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between py-1.5 border-b">
+        <span className="text-xs font-medium">Mesas</span>
+        <div className="flex gap-4 text-xs">
+          <span className="text-green-600">Cubiertas: {data.mesas.cobertura.cubiertas}/{data.mesas.cobertura.total} ({data.mesas.cobertura.porcentaje}%)</span>
+          <span className="text-red-500">Vacías: {data.mesas.vacias}</span>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-xs font-medium flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5" /> Delegados
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="py-2 px-3 space-y-1 text-xs">
-          <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span className="font-semibold">{data.delegados.total}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Con reserva</span><span className="font-semibold">{data.delegados.reserva}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Sin reserva</span><span className="font-semibold">{data.delegados.sinReserva}</span></div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between py-1.5 border-b">
+        <div className="flex items-center gap-2">
+          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium">Delegados</span>
+        </div>
+        <div className="flex gap-4 text-xs">
+          <span>Total: <span className="font-semibold">{data.delegados.total}</span></span>
+          <span>Con reserva: {data.delegados.reserva}</span>
+          <span>Sin reserva: {data.delegados.sinReserva}</span>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-xs font-medium">Personas</CardTitle>
-        </CardHeader>
-        <CardContent className="py-2 px-3 space-y-1 text-xs">
-          <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span className="font-semibold">{data.personas.total}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Jefes</span><span className="font-semibold">{data.personas.jefes}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Delegados</span><span className="font-semibold">{data.personas.delegados}</span></div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between py-1.5 border-b">
+        <span className="text-xs font-medium">Personas</span>
+        <div className="flex gap-4 text-xs">
+          <span>Total: <span className="font-semibold">{data.personas.total}</span></span>
+          <span>Jefes: {data.personas.jefes}</span>
+          <span>Delegados: {data.personas.delegados}</span>
+        </div>
+      </div>
 
-      <Card className="col-span-2">
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-xs font-medium">Extras</CardTitle>
-        </CardHeader>
-        <CardContent className="py-2 px-3 grid grid-cols-2 gap-x-6 text-xs">
-          <div className="flex justify-between"><span className="text-muted-foreground">Grupo WhatsApp</span><span className="font-semibold">{data.extras.grupoWhatsapp}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Fotocopia carnet</span><span className="font-semibold">{data.extras.fotocopiaCarnet}</span></div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between py-1.5">
+        <span className="text-xs font-medium">Extras</span>
+        <div className="flex gap-4 text-xs">
+          <span>Grupo WhatsApp: <span className="font-semibold">{data.extras.grupoWhatsapp}</span></span>
+          <span>Fotocopia carnet: <span className="font-semibold">{data.extras.fotocopiaCarnet}</span></span>
+        </div>
+      </div>
     </div>
   );
 }
-
-
 
 function RecintosTab({ data }: { data: any }) {
   return (
@@ -330,133 +320,172 @@ function RecintosTab({ data }: { data: any }) {
 
 function PersonasTab({ data }: { data: any }) {
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
-        Total recintos: <span className="font-semibold text-foreground">{data.totalRecintos}</span>
-      </p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between bg-muted/30 px-3 py-1.5 rounded-md">
+        <span className="text-xs font-medium">Total Recintos</span>
+        <span className="text-sm font-bold">{data.totalRecintos}</span>
+      </div>
+      
       {data.data.map((item: any, idx: number) => (
-        <Card key={idx}>
-          <CardHeader className="py-2 px-3">
-            <CardTitle className="text-xs font-semibold flex items-center gap-2">
-              <Building2 className="h-3.5 w-3.5 shrink-0" />
-              {item.recinto.nombre}
-              <span className="font-normal text-muted-foreground">
-                · {item.recinto.ubicacion} · Circ. {item.recinto.circ} · Dist. {item.recinto.distrito}
+        <div key={idx} className="space-y-2">
+          <div className="bg-primary/5 px-3 py-1.5 rounded-md -mx-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
+              <span className="text-sm font-semibold">{item.recinto.nombre}</span>
+              <span className="text-xs text-muted-foreground">
+                {item.recinto.ubicacion}
               </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-1 px-3 pb-2 space-y-2">
+              <div className="flex gap-2 ml-auto">
+                <span className="text-xs bg-muted px-1.5 py-0.5 rounded">Circ. {item.recinto.circ}</span>
+                <span className="text-xs bg-muted px-1.5 py-0.5 rounded">Dist. {item.recinto.distrito}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-2 pl-3">
             {item.jefes.titulares.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-0.5">Jefe de Recinto</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Jefe de Recinto</p>
+                </div>
                 {item.jefes.titulares.map((j: any, i: number) => (
-                  <PersonaRow key={i} persona={j} />
+                  <PersonaRow key={i} persona={j} variant="jefe" />
                 ))}
               </div>
             )}
+            
             {item.delegados.porMesa.map((m: any) => (
               <div key={m.mesa}>
-                <p className="text-xs font-medium text-muted-foreground mb-0.5">Mesa {m.mesa}</p>
+                <div className="flex items-center gap-2 mb-1 mt-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Mesa {m.mesa}</p>
+                </div>
                 {m.delegados.titulares.length === 0 ? (
-                  <p className="text-xs italic text-muted-foreground pl-2">Sin delegados</p>
+                  <p className="text-xs italic text-muted-foreground pl-4 py-1">Sin delegados asignados</p>
                 ) : (
                   m.delegados.titulares.map((d: any, i: number) => (
-                    <PersonaRow key={i} persona={d} />
+                    <PersonaRow key={i} persona={d} variant="delegado" />
                   ))
                 )}
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+          
+          {idx < data.data.length - 1 && (
+            <div className="my-3 border-t border-dashed" />
+          )}
+        </div>
       ))}
     </div>
   );
 }
 
-function PersonaRow({ persona }: { persona: any }) {
+function PersonaRow({ persona, variant }: { persona: any; variant?: "jefe" | "delegado" }) {
+  const bgColor = variant === "jefe" ? "hover:bg-green-50 dark:hover:bg-green-950/20" : "hover:bg-blue-50 dark:hover:bg-blue-950/20";
+  
   return (
-    <div className="flex items-center justify-between text-xs py-0.5 px-2 rounded hover:bg-muted/50">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="font-medium truncate">{persona.nombre}</span>
-        <span className="text-muted-foreground shrink-0">CI: {persona.ci}</span>
-        {persona.celular && <span className="text-muted-foreground shrink-0">{persona.celular}</span>}
-        {persona.agrupacion && <span className="text-muted-foreground shrink-0 truncate max-w-[100px]">{persona.agrupacion}</span>}
+    <div className={`flex items-center justify-between text-xs py-1.5 px-3 rounded-md transition-colors ${bgColor}`}>
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="font-medium">{persona.nombre}</span>
+        <span className="text-muted-foreground font-mono text-xs">CI: {persona.ci}</span>
+        {persona.celular && (
+          <span className="text-muted-foreground text-xs">{persona.celular}</span>
+        )}
+        {persona.agrupacion && (
+          <span className="text-muted-foreground text-xs bg-muted/50 px-1.5 py-0.5 rounded">
+            {persona.agrupacion}
+          </span>
+        )}
       </div>
-      <div className="flex items-center gap-1 shrink-0 ml-2">
-        {persona.grupoWhatsapp === 1 && <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">WA</Badge>}
-        {persona.fotocopiaCarnet === 1 && <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">CI</Badge>}
+      <div className="flex items-center gap-1">
+        {persona.grupoWhatsapp === 1 && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+            WhatsApp
+          </span>
+        )}
+        {persona.fotocopiaCarnet === 1 && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+            Fotocopia CI
+          </span>
+        )}
       </div>
     </div>
   );
 }
-
 function FaltantesTab({ data }: { data: any }) {
   return (
-    <div className="space-y-3">
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-xs font-medium flex items-center gap-2">
+    <div className="space-y-4">
+      <div>
+        <div className="flex items-center justify-between mb-2 pb-1 border-b">
+          <div className="flex items-center gap-2">
             <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />
-            Recintos sin Jefe
-            <Badge variant="destructive" className="ml-auto text-xs px-1.5 py-0">
-              {data.recintosSinJefe.total}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="py-1 px-3 pb-2">
-          {data.recintosSinJefe.items.length === 0 ? (
-            <p className="text-xs text-muted-foreground">✓ Todos los recintos tienen jefe</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-              {data.recintosSinJefe.items.map((r: any) => (
-                <div key={r.id} className="text-xs flex items-center gap-1.5 py-0.5">
-                  <XCircle className="h-3 w-3 text-red-400 shrink-0" />
-                  <span className="truncate">{r.nombre}</span>
-                  <span className="text-muted-foreground font-mono ml-auto shrink-0">#{r.id}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recintos sin Jefe</span>
+          </div>
+          <Badge variant="destructive" className="text-xs px-1.5 py-0">
+            {data.recintosSinJefe.total}
+          </Badge>
+        </div>
+        
+        {data.recintosSinJefe.items.length === 0 ? (
+          <div className="flex items-center gap-2 text-xs text-green-600 py-2">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>Todos los recintos tienen jefe</span>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {data.recintosSinJefe.items.map((r: any) => (
+              <div key={r.id} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded-md hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
+                <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                <span className="font-medium">{r.nombre}</span>
+                <span className="text-muted-foreground text-[10px] font-mono ml-auto">ID: {r.id}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-xs font-medium flex items-center gap-2">
+      <div>
+        <div className="flex items-center justify-between mb-2 pb-1 border-b">
+          <div className="flex items-center gap-2">
             <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />
-            Mesas sin Delegado
-            <Badge variant="destructive" className="ml-auto text-xs px-1.5 py-0">
-              {data.mesasSinDelegado.total}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="py-1 px-3 pb-2">
-          {data.mesasSinDelegado.items.length === 0 ? (
-            <p className="text-xs text-muted-foreground">✓ Todas las mesas tienen delegado</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="text-xs">
-                  <TableHead className="py-1 h-7">Mesa</TableHead>
-                  <TableHead className="py-1 h-7">Recinto</TableHead>
-                  <TableHead className="py-1 h-7">Municipio</TableHead>
-                  <TableHead className="py-1 h-7">Distrito</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Mesas sin Delegado</span>
+          </div>
+          <Badge variant="destructive" className="text-xs px-1.5 py-0">
+            {data.mesasSinDelegado.total}
+          </Badge>
+        </div>
+        
+        {data.mesasSinDelegado.items.length === 0 ? (
+          <div className="flex items-center gap-2 text-xs text-green-600 py-2">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>Todas las mesas tienen delegado</span>
+          </div>
+        ) : (
+          <div className="border rounded-md overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left py-2 px-3 font-medium">Mesa</th>
+                  <th className="text-left py-2 px-3 font-medium">Recinto</th>
+                  <th className="text-left py-2 px-3 font-medium">Municipio</th>
+                  <th className="text-left py-2 px-3 font-medium">Distrito</th>
+                </tr>
+              </thead>
+              <tbody>
                 {data.mesasSinDelegado.items.map((m: any, i: number) => (
-                  <TableRow key={i} className="text-xs">
-                    <TableCell className="py-1">{m.mesa}</TableCell>
-                    <TableCell className="py-1">{m.recinto}</TableCell>
-                    <TableCell className="py-1">{m.municipio}</TableCell>
-                    <TableCell className="py-1">{m.distrito}</TableCell>
-                  </TableRow>
+                  <tr key={i} className="border-t hover:bg-muted/30">
+                    <td className="py-1.5 px-3 font-mono">#{m.mesa}</td>
+                    <td className="py-1.5 px-3">{m.recinto}</td>
+                    <td className="py-1.5 px-3">{m.municipio}</td>
+                    <td className="py-1.5 px-3">{m.distrito}</td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

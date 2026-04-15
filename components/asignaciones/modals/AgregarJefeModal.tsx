@@ -23,8 +23,10 @@ import { toast } from "sonner";
 import { useProcess } from "@/lib/context/process-context";
 import { useAgrupaciones } from "@/lib/hooks/useAgrupaciones";
 import { useRegistrarJefeRecinto, useActualizarJefeRecinto } from "@/lib/hooks/useJefeRecinto";
-import { useUpdateUsuario } from "@/lib/hooks/useUsuarios";
+import { useUpdateUsuario, useVerificarUsuario } from "@/lib/hooks/useUsuarios";
 import type { JefeRecinto } from "@/lib/types/recinto";
+import type { VerificarUsuarioResponse } from "@/lib/types/usuario";
+import { VerificacionUsuarioDialog } from "./VerificacionUsuarioDialog";
 
 interface AgregarJefeModalProps {
   open: boolean;
@@ -69,6 +71,10 @@ export function AgregarJefeModal({
   const registrarMutation = useRegistrarJefeRecinto();
   const actualizarJefeMutation = useActualizarJefeRecinto();
   const actualizarUsuarioMutation = useUpdateUsuario();
+  const verificarMutation = useVerificarUsuario();
+
+  const [showVerificacion, setShowVerificacion] = useState(false);
+  const [verificacionData, setVerificacionData] = useState<VerificarUsuarioResponse | null>(null);
 
   const isEditMode = !!editData;
   const isLoading = registrarMutation.isPending || actualizarJefeMutation.isPending || actualizarUsuarioMutation.isPending;
@@ -94,15 +100,8 @@ export function AgregarJefeModal({
     onOpenChange(false);
   };
 
-  const handleSubmit = async () => {
-    if (!formData.nombres || !formData.apellidos || !formData.numDocumento || !formData.celular) {
-      toast.error("Complete todos los campos requeridos");
-      return;
-    }
-    if (!procesoId) {
-      toast.error("No hay proceso seleccionado");
-      return;
-    }
+  const ejecutarRegistro = async () => {
+    if (!procesoId) return;
 
     try {
       if (isEditMode && editData) {
@@ -150,13 +149,60 @@ export function AgregarJefeModal({
         });
         toast.success("Jefe de recinto registrado exitosamente");
       }
+      setShowVerificacion(false);
+      setVerificacionData(null);
       handleClose();
     } catch (error: any) {
       toast.error(error?.response?.data?.message || `Error al ${isEditMode ? "actualizar" : "registrar"} jefe`);
     }
   };
 
+  const handleSubmit = async () => {
+    if (!formData.nombres || !formData.apellidos || !formData.numDocumento || !formData.celular) {
+      toast.error("Complete todos los campos requeridos");
+      return;
+    }
+    if (!procesoId) {
+      toast.error("No hay proceso seleccionado");
+      return;
+    }
+
+    try {
+      // Verificar usuario antes de crear/editar
+      const verificacion = await verificarMutation.mutateAsync({
+        numDocumento: formData.numDocumento,
+        celular: formData.celular,
+      });
+
+      const hayAdvertencias =
+        (verificacion.ci.existe && verificacion.ci.usuario) ||
+        (verificacion.celular.enUso && verificacion.celular.usuarios.length > 0);
+
+      if (hayAdvertencias) {
+        // Mostrar diálogo de advertencia
+        setVerificacionData(verificacion);
+        setShowVerificacion(true);
+      } else {
+        // Sin advertencias, ejecutar directamente
+        await ejecutarRegistro();
+      }
+    } catch (error: any) {
+      // Si falla la verificación, continuar con el registro
+      await ejecutarRegistro();
+    }
+  };
+
+  const handleConfirmVerificacion = async () => {
+    await ejecutarRegistro();
+  };
+
+  const handleCancelVerificacion = () => {
+    setShowVerificacion(false);
+    setVerificacionData(null);
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
@@ -269,5 +315,15 @@ export function AgregarJefeModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    <VerificacionUsuarioDialog
+      open={showVerificacion}
+      onOpenChange={setShowVerificacion}
+      verificacion={verificacionData}
+      onConfirm={handleConfirmVerificacion}
+      onCancel={handleCancelVerificacion}
+      isLoading={isLoading}
+    />
+    </>
   );
 }

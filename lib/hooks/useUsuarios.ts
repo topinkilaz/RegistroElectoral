@@ -7,6 +7,7 @@ import {
   cambiarPassword,
   cambiarEstado,
   reemplazarRol,
+  verificarUsuario,
 } from "@/lib/api/usuarios";
 import type {
   UsuariosParams,
@@ -15,6 +16,7 @@ import type {
   CambiarPasswordDto,
   CambiarEstadoDto,
   ReemplazarRolDto,
+  VerificarUsuarioParams,
 } from "@/lib/types/usuario";
 import { useAuth } from "@/lib/context/auth-context";
 
@@ -87,5 +89,11 @@ export function useReemplazarRol() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
+  });
+}
+
+export function useVerificarUsuario() {
+  return useMutation({
+    mutationFn: (params: VerificarUsuarioParams) => verificarUsuario(params),
   });
 }
