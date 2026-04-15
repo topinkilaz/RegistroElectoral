@@ -25,6 +25,15 @@ import {
   Users,
   Eye,
   EyeOff,
+  FileText,
+  ArrowLeft,
+  UserCheck,
+  Phone,
+  IdCard,
+  MessageCircle,
+  MapPin,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -55,12 +64,16 @@ import {
   useUpdateAgrupacion,
   useExportarAgrupaciones,
   useDeleteAgrupacion,
+  useAgrupacionesReporte,
+  useAgrupacionReporteDetalle,
 } from "@/lib/hooks/useAgrupaciones";
 import type {
   Agrupacion,
   UpdateAgrupacionDto,
   EstadoAgrupacion,
+  AgrupacionReporte,
 } from "@/lib/types/agrupacion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProcess } from "@/lib/context/process-context";
 
 export default function AgrupacionesPage() {
@@ -70,8 +83,10 @@ export default function AgrupacionesPage() {
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [reporteModalOpen, setReporteModalOpen] = useState(false);
   const [selectedAgrupacion, setSelectedAgrupacion] =
     useState<Agrupacion | null>(null);
+  const [selectedReporteId, setSelectedReporteId] = useState<number | null>(null);
 
   const [newAgrupacion, setNewAgrupacion] = useState({
     nombre: "",
@@ -87,6 +102,9 @@ export default function AgrupacionesPage() {
   const updateMutation = useUpdateAgrupacion();
   const exportMutation = useExportarAgrupaciones();
   const deleteMutation = useDeleteAgrupacion();
+
+  const { data: reporteData, isLoading: isLoadingReporte } = useAgrupacionesReporte();
+  const { data: reporteDetalle, isLoading: isLoadingDetalle } = useAgrupacionReporteDetalle(selectedReporteId);
 
   // Filtrar datos localmente por búsqueda
   const filteredData = useMemo(() => {
@@ -245,6 +263,14 @@ export default function AgrupacionesPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            onClick={() => setReporteModalOpen(true)}
+            variant="outline"
+            className="flex items-center gap-2 bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100"
+          >
+            <FileText className="h-4 w-4" />
+            Informes
+          </Button>
           <Button
             onClick={handleExport}
             variant="outline"
@@ -545,6 +571,359 @@ export default function AgrupacionesPage() {
               ) : (
                 "Guardar"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Modal */}
+      <Dialog
+        open={reporteModalOpen}
+        onOpenChange={(open) => {
+          setReporteModalOpen(open);
+          if (!open) setSelectedReporteId(null);
+        }}
+      >
+        <DialogContent className="!max-w-[50vw] !w-[50vw] max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedReporteId ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedReporteId(null)}
+                    className="h-8 w-8"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <span>Detalle de {reporteDetalle?.agrupacion.nombre}</span>
+                </>
+              ) : (
+                <>
+                  <FileText className="h-5 w-5 text-sky-600" />
+                  <span>Informes de Agrupaciones</span>
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedReporteId
+                ? "Información detallada de jefes de recinto y delegados"
+                : "Resumen de jefes de recinto, delegados titulares, reservas y total de personas por agrupación"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-auto max-h-[70vh]">
+            {!selectedReporteId ? (
+              // Lista de agrupaciones con resumen
+              <div className="space-y-4">
+                {isLoadingReporte ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
+                  </div>
+                ) : reporteData && reporteData.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Agrupación</TableHead>
+                        <TableHead className="text-center">Jefes Recinto</TableHead>
+                        <TableHead className="text-center">Titulares</TableHead>
+                        <TableHead className="text-center">Reservas</TableHead>
+                        <TableHead className="text-center">Total Delegados</TableHead>
+                        <TableHead className="text-center">Total Personas</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reporteData.map((item: AgrupacionReporte) => (
+                        <TableRow key={item.id} className="cursor-pointer hover:bg-sky-50/50">
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{item.nombre}</span>
+                              {item.sigla && (
+                                <span className="text-xs text-muted-foreground">{item.sigla}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                              {item.jefesRecinto}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              {item.delegados.titulares}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                              {item.delegados.reservas}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              {item.delegados.total}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge className="bg-sky-600">
+                              {item.totalPersonas}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              onClick={() => setSelectedReporteId(item.id)}
+                              className="bg-sky-600 hover:bg-sky-700 text-white"
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver detalle
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No hay datos de reportes disponibles
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Detalle de una agrupación
+              <div className="space-y-6">
+                {isLoadingDetalle ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
+                  </div>
+                ) : reporteDetalle ? (
+                  <>
+                    {/* Resumen */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Card className="border-purple-200 bg-purple-50/50">
+                        <CardContent className="pt-4">
+                          <div className="flex items-center gap-2">
+                            <UserCheck className="h-5 w-5 text-purple-600" />
+                            <div>
+                              <p className="text-2xl font-bold text-purple-700">{reporteDetalle.resumen.jefesRecinto}</p>
+                              <p className="text-xs text-purple-600">Jefes de Recinto</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-green-200 bg-green-50/50">
+                        <CardContent className="pt-4">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-green-600" />
+                            <div>
+                              <p className="text-2xl font-bold text-green-700">{reporteDetalle.resumen.titulares}</p>
+                              <p className="text-xs text-green-600">Titulares</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-amber-200 bg-amber-50/50">
+                        <CardContent className="pt-4">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-amber-600" />
+                            <div>
+                              <p className="text-2xl font-bold text-amber-700">{reporteDetalle.resumen.reservas}</p>
+                              <p className="text-xs text-amber-600">Reservas</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-sky-200 bg-sky-50/50">
+                        <CardContent className="pt-4">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-sky-600" />
+                            <div>
+                              <p className="text-2xl font-bold text-sky-700">{reporteDetalle.resumen.totalPersonas}</p>
+                              <p className="text-xs text-sky-600">Total Personas</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Estadísticas adicionales */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <MessageCircle className="h-4 w-4 text-green-600" />
+                            En Grupo WhatsApp
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex justify-between text-sm">
+                            <span>Jefes: <strong>{reporteDetalle.resumen.enGrupoWhatsapp.jefes}</strong> / {reporteDetalle.resumen.jefesRecinto}</span>
+                            <span>Delegados: <strong>{reporteDetalle.resumen.enGrupoWhatsapp.delegados}</strong> / {reporteDetalle.resumen.totalDelegados}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <IdCard className="h-4 w-4 text-blue-600" />
+                            Con Fotocopia Carnet
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex justify-between text-sm">
+                            <span>Jefes: <strong>{reporteDetalle.resumen.tieneFotocopiaCarnet.jefes}</strong> / {reporteDetalle.resumen.jefesRecinto}</span>
+                            <span>Delegados: <strong>{reporteDetalle.resumen.tieneFotocopiaCarnet.delegados}</strong> / {reporteDetalle.resumen.totalDelegados}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Tabs para Jefes y Delegados */}
+                    <Tabs defaultValue="jefes" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="jefes" className="flex items-center gap-2">
+                          <UserCheck className="h-4 w-4" />
+                          Jefes de Recinto ({reporteDetalle.jefesRecinto.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="delegados" className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Delegados ({reporteDetalle.delegados.length})
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="jefes" className="mt-4">
+                        <div className="space-y-3">
+                          {reporteDetalle.jefesRecinto.map((jefe) => (
+                            <Card key={jefe.id} className="border-purple-100">
+                              <CardContent className="pt-4">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                  <div className="flex-1">
+                                    <p className="font-medium capitalize">
+                                      {jefe.usuario.nombres.toLowerCase()} {jefe.usuario.apellidos.toLowerCase()}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-1">
+                                      <span className="flex items-center gap-1">
+                                        <IdCard className="h-3 w-3" />
+                                        {jefe.usuario.numDocumento}
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <Phone className="h-3 w-3" />
+                                        {jefe.usuario.celular}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-sm flex items-center gap-1">
+                                      <MapPin className="h-3 w-3 text-sky-600" />
+                                      {jefe.recinto.nombre}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {jefe.recinto.localidad.nombre}, {jefe.recinto.localidad.municipio.nombre}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Badge variant="outline" className={jefe.enGrupoWhatsapp ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-50 text-gray-500 border-gray-200"}>
+                                      {jefe.enGrupoWhatsapp ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                                      WhatsApp
+                                    </Badge>
+                                    <Badge variant="outline" className={jefe.tieneFotocopiaCarnet ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-500 border-gray-200"}>
+                                      {jefe.tieneFotocopiaCarnet ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                                      Carnet
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                          {reporteDetalle.jefesRecinto.length === 0 && (
+                            <p className="text-center text-muted-foreground py-4">No hay jefes de recinto registrados</p>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="delegados" className="mt-4">
+                        <div className="space-y-3">
+                          {reporteDetalle.delegados.map((delegado) => (
+                            <Card key={delegado.id} className={delegado.tipo === "titular" ? "border-green-100" : "border-amber-100"}>
+                              <CardContent className="pt-4">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium capitalize">
+                                        {delegado.usuario.nombres.toLowerCase()} {delegado.usuario.apellidos.toLowerCase()}
+                                      </p>
+                                      <Badge className={delegado.tipo === "titular" ? "bg-green-600" : "bg-amber-600"}>
+                                        {delegado.tipo}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-1">
+                                      <span className="flex items-center gap-1">
+                                        <IdCard className="h-3 w-3" />
+                                        {delegado.usuario.numDocumento}
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <Phone className="h-3 w-3" />
+                                        {delegado.usuario.celular}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex-1">
+                                    {delegado.mesa ? (
+                                      <div>
+                                        <p className="text-sm">Mesa {delegado.mesa.numero} - {delegado.mesa.recinto.nombre}</p>
+                                        <p className="text-xs text-muted-foreground">Código: {delegado.mesa.codigo}</p>
+                                      </div>
+                                    ) : delegado.jefeRecinto ? (
+                                      <div>
+                                        <p className="text-sm">{delegado.jefeRecinto.recinto.nombre}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          Jefe: {delegado.jefeRecinto.usuario.nombres} {delegado.jefeRecinto.usuario.apellidos}
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground">Sin asignación</p>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Badge variant="outline" className={delegado.enGrupoWhatsapp ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-50 text-gray-500 border-gray-200"}>
+                                      {delegado.enGrupoWhatsapp ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                                      WhatsApp
+                                    </Badge>
+                                    <Badge variant="outline" className={delegado.tieneFotocopiaCarnet ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-500 border-gray-200"}>
+                                      {delegado.tieneFotocopiaCarnet ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                                      Carnet
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                          {reporteDetalle.delegados.length === 0 && (
+                            <p className="text-center text-muted-foreground py-4">No hay delegados registrados</p>
+                          )}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Error al cargar el detalle
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReporteModalOpen(false);
+                setSelectedReporteId(null);
+              }}
+            >
+              Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>

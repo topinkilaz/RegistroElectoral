@@ -57,25 +57,12 @@ import {
   useCambiarEstadoRecinto,
   useDeleteRecinto,
 } from "@/lib/hooks/useRecintosTable";
+import { useListasGeograficas } from "@/lib/hooks/useAlcances";
 import type {
   Recinto,
   CreateRecintoDto,
   UpdateRecintoDto,
 } from "@/lib/types/recintosTable";
-
-// Mock de localidades - Deberías obtener esto de un endpoint real
-const LOCALIDADES_MOCK = [
-  { id: 1092, nombre: "Ipati" },
-  { id: 1093, nombre: "Ivo" },
-  { id: 1094, nombre: "Ñancorainza" },
-  { id: 1095, nombre: "Tiguipa Pueblo" },
-  { id: 1096, nombre: "Simbolar" },
-  { id: 1097, nombre: "Timboycito" },
-  { id: 1098, nombre: "Tentami" },
-  { id: 1099, nombre: "Isipotindi" },
-  { id: 1100, nombre: "La Victoria" },
-  { id: 1101, nombre: "Cuatro Vientos" },
-];
 
 export default function RecintosPage() {
   const [search, setSearch] = useState("");
@@ -88,9 +75,16 @@ export default function RecintosPage() {
 
   const [newRecinto, setNewRecinto] = useState<CreateRecintoDto>({
     nombre: "",
+    direccion: "",
+    coordenadasGps: "",
+    codigo: "",
+    cantidadMesas: 0,
+    distritoMunicipalId: undefined,
     localidadId: 0,
   });
   const [editRecinto, setEditRecinto] = useState<UpdateRecintoDto>({});
+
+  const { localidades, distritosMunicipales } = useListasGeograficas();
 
   const { data, isLoading, isError } = useRecintos({
     page,
@@ -114,6 +108,14 @@ export default function RecintosPage() {
   };
 
   const handleCreate = async () => {
+    if (!newRecinto.nombre.trim()) {
+      toast.error("Ingrese el nombre del recinto");
+      return;
+    }
+    if (!newRecinto.codigo.trim()) {
+      toast.error("Ingrese el código del recinto");
+      return;
+    }
     if (!newRecinto.localidadId || newRecinto.localidadId === 0) {
       toast.error("Seleccione una localidad");
       return;
@@ -124,6 +126,11 @@ export default function RecintosPage() {
       setCreateModalOpen(false);
       setNewRecinto({
         nombre: "",
+        direccion: "",
+        coordenadasGps: "",
+        codigo: "",
+        cantidadMesas: 0,
+        distritoMunicipalId: undefined,
         localidadId: 0,
       });
     } catch {
@@ -171,7 +178,12 @@ export default function RecintosPage() {
     setSelectedRecinto(recinto);
     setEditRecinto({
       nombre: recinto.nombre,
-      localidadId: recinto.localidad.id,
+      direccion: recinto.direccion || "",
+      coordenadasGps: recinto.coordenadasGps || "",
+      codigo: recinto.codigo,
+      cantidadMesas: recinto.cantidadMesas,
+      distritoMunicipalId: recinto.distritoMunicipalId || undefined,
+      localidadId: recinto.localidadId,
     });
     setEditModalOpen(true);
   };
@@ -233,10 +245,11 @@ export default function RecintosPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>Nombre del Recinto</TableHead>
                     <TableHead>Localidad</TableHead>
+                    <TableHead>Mesas</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead>Creado</TableHead>
                     <TableHead>Actualizado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -247,6 +260,9 @@ export default function RecintosPage() {
                       <TableCell className="font-mono text-xs">
                         {recinto.id}
                       </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {recinto.codigo}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -255,24 +271,24 @@ export default function RecintosPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {recinto.localidad.nombre}
+                          {recinto.localidad?.nombre || "-"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={!recinto.eliminado ? "default" : "secondary"}
-                          className={
-                            !recinto.eliminado
-                              ? "bg-green-500 hover:bg-green-600"
-                              : "bg-red-500"
-                          }
-                        >
-                          {!recinto.eliminado ? "ACTIVO" : "ELIMINADO"}
-                        </Badge>
+                      <TableCell className="text-center">
+                        {recinto.cantidadMesas}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {formatDate(recinto.createdAt)}
-                      </TableCell>
+                     <TableCell>
+  <Badge
+    variant={!recinto.eliminado ? "default" : "secondary"}
+    className={
+      !recinto.eliminado
+        ? "bg-green-500 hover:bg-green-600"
+        : "bg-red-500 hover:bg-red-600"
+    }
+  >
+    {!recinto.eliminado ? "ACTIVO" : "INACTIVO"}
+  </Badge>
+</TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {formatDate(recinto.updatedAt)}
                       </TableCell>
@@ -357,7 +373,7 @@ export default function RecintosPage() {
 
       {/* Create Modal */}
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Nuevo Recinto</DialogTitle>
             <DialogDescription>
@@ -365,31 +381,89 @@ export default function RecintosPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Nombre del Recinto</Label>
-              <Input
-                value={newRecinto.nombre}
-                onChange={(e) => setNewRecinto({ ...newRecinto, nombre: e.target.value })}
-                placeholder="Ej: U.E. René Arteaga"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nombre del Recinto *</Label>
+                <Input
+                  value={newRecinto.nombre}
+                  onChange={(e) => setNewRecinto({ ...newRecinto, nombre: e.target.value })}
+                  placeholder="Ej: U.E. René Arteaga"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Código *</Label>
+                <Input
+                  value={newRecinto.codigo}
+                  onChange={(e) => setNewRecinto({ ...newRecinto, codigo: e.target.value })}
+                  placeholder="Ej: REC-001"
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label>Localidad</Label>
-              <Select
-                value={newRecinto.localidadId?.toString() || ""}
-                onValueChange={(value) => setNewRecinto({ ...newRecinto, localidadId: parseInt(value) })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione una localidad" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LOCALIDADES_MOCK.map((localidad) => (
-                    <SelectItem key={localidad.id} value={localidad.id.toString()}>
-                      {localidad.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Dirección</Label>
+              <Input
+                value={newRecinto.direccion || ""}
+                onChange={(e) => setNewRecinto({ ...newRecinto, direccion: e.target.value })}
+                placeholder="Ej: Av. Principal #123"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Coordenadas GPS</Label>
+                <Input
+                  value={newRecinto.coordenadasGps || ""}
+                  onChange={(e) => setNewRecinto({ ...newRecinto, coordenadasGps: e.target.value })}
+                  placeholder="Ej: -12.0463889, -77.0482639"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cantidad de Mesas *</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={newRecinto.cantidadMesas}
+                  onChange={(e) => setNewRecinto({ ...newRecinto, cantidadMesas: parseInt(e.target.value) || 0 })}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Localidad *</Label>
+                <Select
+                  value={newRecinto.localidadId?.toString() || ""}
+                  onValueChange={(value) => setNewRecinto({ ...newRecinto, localidadId: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione una localidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {localidades.map((localidad) => (
+                      <SelectItem key={localidad.id} value={localidad.id.toString()}>
+                        {localidad.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Distrito Municipal</Label>
+                <Select
+                  value={newRecinto.distritoMunicipalId?.toString() || ""}
+                  onValueChange={(value) => setNewRecinto({ ...newRecinto, distritoMunicipalId: value ? parseInt(value) : undefined })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione un distrito" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {distritosMunicipales.map((distrito) => (
+                      <SelectItem key={distrito.id} value={distrito.id.toString()}>
+                        {distrito.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -409,7 +483,7 @@ export default function RecintosPage() {
 
       {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Recinto</DialogTitle>
             <DialogDescription>
@@ -417,30 +491,84 @@ export default function RecintosPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Nombre del Recinto</Label>
-              <Input
-                value={editRecinto.nombre || ""}
-                onChange={(e) => setEditRecinto({ ...editRecinto, nombre: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nombre del Recinto *</Label>
+                <Input
+                  value={editRecinto.nombre || ""}
+                  onChange={(e) => setEditRecinto({ ...editRecinto, nombre: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Código *</Label>
+                <Input
+                  value={editRecinto.codigo || ""}
+                  onChange={(e) => setEditRecinto({ ...editRecinto, codigo: e.target.value })}
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label>Localidad</Label>
-              <Select
-                value={editRecinto.localidadId?.toString() || ""}
-                onValueChange={(value) => setEditRecinto({ ...editRecinto, localidadId: parseInt(value) })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione una localidad" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LOCALIDADES_MOCK.map((localidad) => (
-                    <SelectItem key={localidad.id} value={localidad.id.toString()}>
-                      {localidad.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Dirección</Label>
+              <Input
+                value={editRecinto.direccion || ""}
+                onChange={(e) => setEditRecinto({ ...editRecinto, direccion: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Coordenadas GPS</Label>
+                <Input
+                  value={editRecinto.coordenadasGps || ""}
+                  onChange={(e) => setEditRecinto({ ...editRecinto, coordenadasGps: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cantidad de Mesas *</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={editRecinto.cantidadMesas ?? 0}
+                  onChange={(e) => setEditRecinto({ ...editRecinto, cantidadMesas: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Localidad *</Label>
+                <Select
+                  value={editRecinto.localidadId?.toString() || ""}
+                  onValueChange={(value) => setEditRecinto({ ...editRecinto, localidadId: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione una localidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {localidades.map((localidad) => (
+                      <SelectItem key={localidad.id} value={localidad.id.toString()}>
+                        {localidad.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Distrito Municipal</Label>
+                <Select
+                  value={editRecinto.distritoMunicipalId?.toString() || ""}
+                  onValueChange={(value) => setEditRecinto({ ...editRecinto, distritoMunicipalId: value ? parseInt(value) : undefined })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione un distrito" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {distritosMunicipales.map((distrito) => (
+                      <SelectItem key={distrito.id} value={distrito.id.toString()}>
+                        {distrito.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>

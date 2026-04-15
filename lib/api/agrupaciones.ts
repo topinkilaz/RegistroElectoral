@@ -5,6 +5,8 @@ import type {
   CreateAgrupacionDto,
   UpdateAgrupacionDto,
   Agrupacion,
+  AgrupacionReporte,
+  AgrupacionReporteDetalle,
 } from "@/lib/types/agrupacion";
 
 export async function getAgrupaciones(params: AgrupacionesParams): Promise<AgrupacionesResponse> {
@@ -32,4 +34,16 @@ export async function exportarAgrupaciones(procesoId: number): Promise<Blob> {
 
 export async function deleteAgrupacion(id: number): Promise<void> {
   await api.delete(`/agrupaciones/${id}`);
+}
+
+export async function getAgrupacionesReporte(procesoId: number): Promise<AgrupacionReporte[]> {
+  const { data } = await api.get<AgrupacionReporte[]>("/agrupaciones/reporte", {
+    params: { procesoId },
+  });
+  return data;
+}
+
+export async function getAgrupacionReporteDetalle(id: number): Promise<AgrupacionReporteDetalle> {
+  const { data } = await api.get<AgrupacionReporteDetalle>(`/agrupaciones/${id}/detalle`);
+  return data;
 }

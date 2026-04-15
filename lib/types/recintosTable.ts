@@ -3,15 +3,28 @@ export interface Localidad {
   nombre: string;
 }
 
+export interface DistritoMunicipal {
+  id: number;
+  nombre: string;
+}
+
 export interface Recinto {
   id: number;
   nombre: string;
+  direccion: string | null;
+  coordenadasGps: string | null;
+  codigo: string;
+  estado: string;
+  cantidadMesas: number;
+  procesoId: number;
+  distritoMunicipalId: number | null;
+  localidadId: number;
   createdAt: string;
   updatedAt: string;
   createdBy: number;
   eliminado: boolean;
-  procesoId: number;
   localidad: Localidad;
+  distritoMunicipal?: DistritoMunicipal | null;
 }
 
 export interface PaginationInfo {
@@ -38,12 +51,22 @@ export interface RecintosParams {
 
 export interface CreateRecintoDto {
   nombre: string;
+  direccion?: string;
+  coordenadasGps?: string;
+  codigo: string;
+  cantidadMesas: number;
+  distritoMunicipalId?: number;
   localidadId: number;
   procesoId?: number;
 }
 
 export interface UpdateRecintoDto {
   nombre?: string;
+  direccion?: string;
+  coordenadasGps?: string;
+  codigo?: string;
+  cantidadMesas?: number;
+  distritoMunicipalId?: number;
   localidadId?: number;
 }
 

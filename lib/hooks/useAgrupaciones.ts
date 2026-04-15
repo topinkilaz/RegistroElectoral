@@ -6,6 +6,8 @@ import {
   updateAgrupacion,
   exportarAgrupaciones,
   deleteAgrupacion,
+  getAgrupacionesReporte,
+  getAgrupacionReporteDetalle,
 } from "@/lib/api/agrupaciones";
 import type {
   AgrupacionesParams,
@@ -89,5 +91,38 @@ export function useDeleteAgrupacion() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agrupaciones"] });
     },
+  });
+}
+
+export function useAgrupacionesReporte() {
+  const { isAuthenticated } = useAuth();
+  const { procesoId } = useProcess();
+
+  return useQuery({
+    queryKey: ["agrupaciones-reporte", procesoId],
+    queryFn: () => {
+      if (!procesoId) {
+        throw new Error("No hay proceso seleccionado");
+      }
+      return getAgrupacionesReporte(procesoId);
+    },
+    enabled: isAuthenticated && !!procesoId,
+    retry: false,
+  });
+}
+
+export function useAgrupacionReporteDetalle(id: number | null) {
+  const { isAuthenticated } = useAuth();
+
+  return useQuery({
+    queryKey: ["agrupacion-reporte-detalle", id],
+    queryFn: () => {
+      if (!id) {
+        throw new Error("No hay agrupación seleccionada");
+      }
+      return getAgrupacionReporteDetalle(id);
+    },
+    enabled: isAuthenticated && !!id,
+    retry: false,
   });
 }

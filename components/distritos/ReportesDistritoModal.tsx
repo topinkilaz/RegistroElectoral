@@ -105,7 +105,7 @@ export default function ReportesDistritoModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] flex flex-col overflow-hidden p-0">
+    <DialogContent className="!max-w-[60vw] !w-[60vw] max-h-[90vh] flex flex-col overflow-hidden p-0">
         <DialogHeader className="px-6 pt-5 pb-3 shrink-0">
   <DialogTitle className="flex items-center gap-2">
     <BarChart3 className="h-4 w-4" />
