@@ -6,6 +6,7 @@ export interface Localidad {
 export interface DistritoMunicipal {
   id: number;
   nombre: string;
+  codigo?: string;
 }
 
 export interface Recinto {
@@ -14,11 +15,12 @@ export interface Recinto {
   direccion: string | null;
   coordenadasGps: string | null;
   codigo: string;
-  estado: string;
+  estado?: string;
   cantidadMesas: number;
   procesoId: number;
-  distritoMunicipalId: number | null;
-  localidadId: number;
+  // Estos campos pueden no venir en la respuesta de lista, solo en detalle
+  distritoMunicipalId?: number | null;
+  localidadId?: number;
   createdAt: string;
   updatedAt: string;
   createdBy: number;
@@ -47,6 +49,9 @@ export interface RecintosParams {
   page?: number;
   limit?: number;
   search?: string;
+  distritoId?: number;
+  circunscripcionId?: number;
+  localidadId?: number;
 }
 
 export interface CreateRecintoDto {

@@ -63,11 +63,16 @@ import type {
   CreateRecintoDto,
   UpdateRecintoDto,
 } from "@/lib/types/recintosTable";
+import ReactSelect from "react-select";
 
 export default function RecintosPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [filterDistritoId, setFilterDistritoId] = useState<number | undefined>();
+  const [filterCircunscripcionId, setFilterCircunscripcionId] = useState<number | undefined>();
+  const [filterLocalidadId, setFilterLocalidadId] = useState<number | undefined>();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -84,20 +89,71 @@ export default function RecintosPage() {
   });
   const [editRecinto, setEditRecinto] = useState<UpdateRecintoDto>({});
 
-  const { localidades, distritosMunicipales } = useListasGeograficas();
+  const { localidades, distritosMunicipales, circunscripciones } = useListasGeograficas();
 
   const { data, isLoading, isError } = useRecintos({
     page,
     limit: 10,
     search: searchTerm || undefined,
+    distritoId: filterDistritoId,
+    circunscripcionId: filterCircunscripcionId,
+    localidadId: filterLocalidadId,
   });
   const createMutation = useCreateRecinto();
   const updateMutation = useUpdateRecinto();
   const estadoMutation = useCambiarEstadoRecinto();
   const deleteMutation = useDeleteRecinto();
 
+  const localidadOptions = localidades.map(localidad => ({
+    value: localidad.id,
+    label: localidad.nombre
+  }));
+
+  const selectedLocalidad = localidadOptions.find(
+    opt => opt.value === newRecinto.localidadId
+  );
+
+  const selectedEditLocalidad = localidadOptions.find(
+    opt => opt.value === editRecinto.localidadId
+  );
+
+  const selectedFilterLocalidad = localidadOptions.find(
+    opt => opt.value === filterLocalidadId
+  );
+
+const getSelectClassNames = () => ({
+  control: (state: any) => 
+    `min-h-[38px] border border-input bg-background hover:bg-muted hover:border-ring rounded-md shadow-sm ${
+      state.isFocused ? "ring-2 ring-ring border-ring" : ""
+    }`,
+  menu: () => "bg-popover border border-border rounded-md mt-1 z-50 shadow-md",
+  menuList: () => "bg-popover rounded-md p-1",
+  option: (state: any) => 
+    `cursor-pointer px-3 py-2 rounded-sm transition-colors ${
+      state.isFocused ? "bg-muted text-foreground" : "bg-popover text-popover-foreground hover:bg-muted"
+    }`,
+  singleValue: () => "text-foreground",
+  input: () => "text-foreground",
+  placeholder: () => "text-muted-foreground",
+  dropdownIndicator: (state: any) => 
+    `text-muted-foreground hover:text-foreground transition-colors ${
+      state.isFocused ? "text-foreground" : ""
+    }`,
+  clearIndicator: () => "text-muted-foreground hover:text-foreground transition-colors",
+  indicatorSeparator: () => "bg-border",
+});
+
   const handleSearch = () => {
     setSearchTerm(search);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setSearchTerm("");
+    setFilterDistritoId(undefined);
+    setFilterCircunscripcionId(undefined);
+    setFilterLocalidadId(undefined);
     setPage(1);
   };
 
@@ -182,20 +238,10 @@ export default function RecintosPage() {
       coordenadasGps: recinto.coordenadasGps || "",
       codigo: recinto.codigo,
       cantidadMesas: recinto.cantidadMesas,
-      distritoMunicipalId: recinto.distritoMunicipalId || undefined,
-      localidadId: recinto.localidadId,
+      distritoMunicipalId: recinto.distritoMunicipalId || recinto.distritoMunicipal?.id || undefined,
+      localidadId: recinto.localidadId || recinto.localidad?.id,
     });
     setEditModalOpen(true);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   return (
@@ -214,20 +260,90 @@ export default function RecintosPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Todos los Recintos</CardTitle>
-          <div className="flex items-center gap-4 w-1/3">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar recintos..."
-                className="pl-8"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
+        <CardHeader className="space-y-4">
+          <div className="flex flex-row items-center justify-between">
+            <CardTitle>Todos los Recintos</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar recintos..."
+                  className="pl-8 w-64"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
+              <Button onClick={handleSearch} size="sm">Buscar</Button>
             </div>
-            <Button onClick={handleSearch} size="sm">Buscar</Button>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground whitespace-nowrap">Distrito:</Label>
+              <Select
+                value={filterDistritoId?.toString() || "all"}
+                onValueChange={(value) => {
+                  setFilterDistritoId(value === "all" ? undefined : parseInt(value));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {distritosMunicipales.map((d) => (
+                    <SelectItem key={d.id} value={d.id.toString()}>
+                      {d.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground whitespace-nowrap">Circunscripción:</Label>
+              <Select
+                value={filterCircunscripcionId?.toString() || "all"}
+                onValueChange={(value) => {
+                  setFilterCircunscripcionId(value === "all" ? undefined : parseInt(value));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {circunscripciones.map((c) => (
+                    <SelectItem key={c.id} value={c.id.toString()}>
+                      {c.numero}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground whitespace-nowrap">Localidad:</Label>
+              <div className="w-64">
+                <ReactSelect
+                  options={localidadOptions}
+                  value={selectedFilterLocalidad}
+                  onChange={(option: any) => {
+                    setFilterLocalidadId(option?.value);
+                    setPage(1);
+                  }}
+                  placeholder="Buscar o seleccionar localidad..."
+                  isClearable
+                  isSearchable
+                  classNames={getSelectClassNames()}
+                />
+              </div>
+            </div>
+            {(filterDistritoId || filterCircunscripcionId || filterLocalidadId || searchTerm) && (
+              <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                Limpiar filtros
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -247,10 +363,10 @@ export default function RecintosPage() {
                     <TableHead>ID</TableHead>
                     <TableHead>Código</TableHead>
                     <TableHead>Nombre del Recinto</TableHead>
+                    <TableHead>Distrito</TableHead>
                     <TableHead>Localidad</TableHead>
                     <TableHead>Mesas</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead>Actualizado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -270,6 +386,15 @@ export default function RecintosPage() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        {recinto.distritoMunicipal ? (
+                          <Badge variant="secondary">
+                            {recinto.distritoMunicipal.nombre}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Badge variant="outline">
                           {recinto.localidad?.nombre || "-"}
                         </Badge>
@@ -277,20 +402,17 @@ export default function RecintosPage() {
                       <TableCell className="text-center">
                         {recinto.cantidadMesas}
                       </TableCell>
-                     <TableCell>
-  <Badge
-    variant={!recinto.eliminado ? "default" : "secondary"}
-    className={
-      !recinto.eliminado
-        ? "bg-green-500 hover:bg-green-600"
-        : "bg-red-500 hover:bg-red-600"
-    }
-  >
-    {!recinto.eliminado ? "ACTIVO" : "INACTIVO"}
-  </Badge>
-</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {formatDate(recinto.updatedAt)}
+                      <TableCell>
+                        <Badge
+                          variant={!recinto.eliminado ? "default" : "secondary"}
+                          className={
+                            !recinto.eliminado
+                              ? "bg-green-500 hover:bg-green-600"
+                              : "bg-red-500 hover:bg-red-600"
+                          }
+                        >
+                          {!recinto.eliminado ? "ACTIVO" : "INACTIVO"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -371,7 +493,6 @@ export default function RecintosPage() {
         </CardContent>
       </Card>
 
-      {/* Create Modal */}
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -430,21 +551,20 @@ export default function RecintosPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Localidad *</Label>
-                <Select
-                  value={newRecinto.localidadId?.toString() || ""}
-                  onValueChange={(value) => setNewRecinto({ ...newRecinto, localidadId: parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione una localidad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {localidades.map((localidad) => (
-                      <SelectItem key={localidad.id} value={localidad.id.toString()}>
-                        {localidad.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ReactSelect
+                  options={localidadOptions}
+                  value={selectedLocalidad}
+                  onChange={(option: any) => 
+                    setNewRecinto({ 
+                      ...newRecinto, 
+                      localidadId: option?.value || 0 
+                    })
+                  }
+                  placeholder="Buscar o seleccionar localidad..."
+                  isClearable
+                  isSearchable
+                  classNames={getSelectClassNames()}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Distrito Municipal</Label>
@@ -481,7 +601,6 @@ export default function RecintosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -535,21 +654,20 @@ export default function RecintosPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Localidad *</Label>
-                <Select
-                  value={editRecinto.localidadId?.toString() || ""}
-                  onValueChange={(value) => setEditRecinto({ ...editRecinto, localidadId: parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione una localidad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {localidades.map((localidad) => (
-                      <SelectItem key={localidad.id} value={localidad.id.toString()}>
-                        {localidad.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ReactSelect
+                  options={localidadOptions}
+                  value={selectedEditLocalidad}
+                  onChange={(option: any) => 
+                    setEditRecinto({ 
+                      ...editRecinto, 
+                      localidadId: option?.value 
+                    })
+                  }
+                  placeholder="Buscar o seleccionar localidad..."
+                  isClearable
+                  isSearchable
+                  classNames={getSelectClassNames()}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Distrito Municipal</Label>
