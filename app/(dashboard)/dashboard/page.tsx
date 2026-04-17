@@ -41,6 +41,7 @@ import { useProcess } from "@/lib/context/process-context";
 import { useReporteResultado } from "@/lib/hooks/useReportes";
 import { useListasGeograficas } from "@/lib/hooks/useAlcances";
 import { api } from "@/lib/api/axios";
+import ReactSelect from "react-select";
 
 export default function DashboardPage() {
   const { procesoId } = useProcess();
@@ -73,6 +74,39 @@ export default function DashboardPage() {
       localidadId: localidadId || undefined,
     } : null
   );
+
+  const localidadOptions = localidades.map(localidad => ({
+    value: localidad.id,
+    label: localidad.nombre
+  }));
+
+  const selectedFilterLocalidad = localidadOptions.find(
+    opt => opt.value === localidadId
+  );
+
+  const selectClassNames = {
+    control: (state: any) =>
+      `!min-h-9 !bg-background !border-input !rounded-md !shadow-sm ${
+        state.isFocused ? "!border-ring !ring-1 !ring-ring" : ""
+      }`,
+    menu: () => "!bg-popover !border !border-border !rounded-md !shadow-md !z-50",
+    menuList: () => "!p-1",
+    option: (state: any) =>
+      `!rounded-sm !px-2 !py-1.5 !text-sm !cursor-pointer ${
+        state.isSelected
+          ? "!bg-primary !text-primary-foreground"
+          : state.isFocused
+            ? "!bg-accent !text-accent-foreground"
+            : "!bg-transparent !text-popover-foreground"
+      }`,
+    singleValue: () => "!text-foreground",
+    input: () => "!text-foreground",
+    placeholder: () => "!text-muted-foreground",
+    dropdownIndicator: () => "!text-muted-foreground hover:!text-foreground",
+    clearIndicator: () => "!text-muted-foreground hover:!text-foreground",
+    indicatorSeparator: () => "!bg-border",
+    noOptionsMessage: () => "!text-muted-foreground",
+  };
 
   const resetFilters = () => {
     setProvinciaId(null);
@@ -244,23 +278,19 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
 
-            <Select
-              value={localidadId?.toString() || "all"}
-              onValueChange={(val) => setLocalidadId(val === "all" ? null : Number(val))}
-              disabled={isLoadingListas}
-            >
-              <SelectTrigger className="h-8 w-[130px] text-xs">
-                <SelectValue placeholder="Localidades" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Localidades</SelectItem>
-                {localidades.map((l) => (
-                  <SelectItem key={l.id} value={l.id.toString()}>
-                    {l.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="w-[180px]">
+              <ReactSelect
+                options={localidadOptions}
+                value={selectedFilterLocalidad}
+                onChange={(option: any) => {
+                  setLocalidadId(option?.value || null);
+                }}
+                placeholder="Localidades..."
+                isClearable
+                isSearchable
+                classNames={selectClassNames}
+              />
+            </div>
 
             {hasActiveFilters && (
               <Button

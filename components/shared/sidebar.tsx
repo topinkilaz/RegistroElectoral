@@ -21,6 +21,7 @@ import {
   AlertCircle,
   X,
   MapPin,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,6 +102,55 @@ const sidebarGroups: SidebarGroup[] = [
         icon: MapPin,
         roles: [ROLES.ADMIN, ROLES.EDITOR],
       },
+       {
+        title: "Gurpos de Recintos",
+        href: "/dashboard/grupo-recintos",
+        icon: Shield,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
+    ],
+  },
+  {
+    title: "GEOGRAFIA",
+    items: [
+      {
+        title: "Paises",
+        href: "/dashboard/paises",
+        icon: Globe,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
+       {
+        title: "Departamentos",
+        href: "/dashboard/departamentos",
+        icon: Globe,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
+      {
+        title: "Provincias",
+        href: "/dashboard/provincias",
+        icon: Globe,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
+       
+       {
+        title: "Localidades",
+        href: "/dashboard/localidades",
+        icon: Globe,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
+      {
+        title: "Municipios",
+        href: "/dashboard/municipios",
+        icon: Globe,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
+      {
+        title: "Circunscripciones",
+        href: "/dashboard/circunscripciones",
+        icon: Globe,
+        roles: [ROLES.ADMIN, ROLES.EDITOR],
+      },
+
     ],
   },
 ];

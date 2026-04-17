@@ -121,27 +121,29 @@ export default function RecintosPage() {
     opt => opt.value === filterLocalidadId
   );
 
-const getSelectClassNames = () => ({
-  control: (state: any) => 
-    `min-h-[38px] border border-input bg-background hover:bg-muted hover:border-ring rounded-md shadow-sm ${
-      state.isFocused ? "ring-2 ring-ring border-ring" : ""
+const selectClassNames = {
+  control: (state: any) =>
+    `!min-h-9 !bg-background !border-input !rounded-md !shadow-sm ${
+      state.isFocused ? "!border-ring !ring-1 !ring-ring" : ""
     }`,
-  menu: () => "bg-popover border border-border rounded-md mt-1 z-50 shadow-md",
-  menuList: () => "bg-popover rounded-md p-1",
-  option: (state: any) => 
-    `cursor-pointer px-3 py-2 rounded-sm transition-colors ${
-      state.isFocused ? "bg-muted text-foreground" : "bg-popover text-popover-foreground hover:bg-muted"
+  menu: () => "!bg-popover !border !border-border !rounded-md !shadow-md !z-50",
+  menuList: () => "!p-1",
+  option: (state: any) =>
+    `!rounded-sm !px-2 !py-1.5 !text-sm !cursor-pointer ${
+      state.isSelected
+        ? "!bg-primary !text-primary-foreground"
+        : state.isFocused
+          ? "!bg-accent !text-accent-foreground"
+          : "!bg-transparent !text-popover-foreground"
     }`,
-  singleValue: () => "text-foreground",
-  input: () => "text-foreground",
-  placeholder: () => "text-muted-foreground",
-  dropdownIndicator: (state: any) => 
-    `text-muted-foreground hover:text-foreground transition-colors ${
-      state.isFocused ? "text-foreground" : ""
-    }`,
-  clearIndicator: () => "text-muted-foreground hover:text-foreground transition-colors",
-  indicatorSeparator: () => "bg-border",
-});
+  singleValue: () => "!text-foreground",
+  input: () => "!text-foreground",
+  placeholder: () => "!text-muted-foreground",
+  dropdownIndicator: () => "!text-muted-foreground hover:!text-foreground",
+  clearIndicator: () => "!text-muted-foreground hover:!text-foreground",
+  indicatorSeparator: () => "!bg-border",
+  noOptionsMessage: () => "!text-muted-foreground",
+};
 
   const handleSearch = () => {
     setSearchTerm(search);
@@ -335,7 +337,7 @@ const getSelectClassNames = () => ({
                   placeholder="Buscar o seleccionar localidad..."
                   isClearable
                   isSearchable
-                  classNames={getSelectClassNames()}
+                  classNames={selectClassNames}
                 />
               </div>
             </div>
@@ -554,16 +556,16 @@ const getSelectClassNames = () => ({
                 <ReactSelect
                   options={localidadOptions}
                   value={selectedLocalidad}
-                  onChange={(option: any) => 
-                    setNewRecinto({ 
-                      ...newRecinto, 
-                      localidadId: option?.value || 0 
+                  onChange={(option: any) =>
+                    setNewRecinto({
+                      ...newRecinto,
+                      localidadId: option?.value || 0
                     })
                   }
                   placeholder="Buscar o seleccionar localidad..."
                   isClearable
                   isSearchable
-                  classNames={getSelectClassNames()}
+                  classNames={selectClassNames}
                 />
               </div>
               <div className="space-y-2">
@@ -657,16 +659,16 @@ const getSelectClassNames = () => ({
                 <ReactSelect
                   options={localidadOptions}
                   value={selectedEditLocalidad}
-                  onChange={(option: any) => 
-                    setEditRecinto({ 
-                      ...editRecinto, 
-                      localidadId: option?.value 
+                  onChange={(option: any) =>
+                    setEditRecinto({
+                      ...editRecinto,
+                      localidadId: option?.value
                     })
                   }
                   placeholder="Buscar o seleccionar localidad..."
                   isClearable
                   isSearchable
-                  classNames={getSelectClassNames()}
+                  classNames={selectClassNames}
                 />
               </div>
               <div className="space-y-2">
