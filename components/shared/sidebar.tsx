@@ -103,7 +103,7 @@ const sidebarGroups: SidebarGroup[] = [
         roles: [ROLES.ADMIN, ROLES.EDITOR],
       },
        {
-        title: "Gurpos de Recintos",
+        title: "Grupos de Recintos",
         href: "/dashboard/grupo-recintos",
         icon: Shield,
         roles: [ROLES.ADMIN, ROLES.EDITOR],
