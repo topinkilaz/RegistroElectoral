@@ -27,7 +27,11 @@ export default function RecintosPage() {
   const [selectedRecintoId, setSelectedRecintoId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data, isLoading, isError } = useRecintosPorUsuario({ page, limit: 20 });
+  const { data, isLoading, isError } = useRecintosPorUsuario({
+    page,
+    limit: 20,
+    search: searchTerm || undefined
+  });
 
   // Obtener el recinto actualizado del data cuando cambia
   const selectedRecinto = useMemo(() => {
@@ -49,13 +53,7 @@ export default function RecintosPage() {
     setModalOpen(true);
   };
 
-  const filtered = data?.data.filter((r) =>
-    searchTerm
-      ? r.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.localidad.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-      : true
-  );
+  const recintos = data?.data || [];
 
   if (!hasSelectedProceso) {
     return (
@@ -123,9 +121,9 @@ export default function RecintosPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered && filtered.length > 0 ? (
-                    filtered.map((recinto) => {
-                      // Valores por defecto para evitar undefined
+                  {recintos && recintos.length > 0 ? (
+                    recintos.map((recinto) => {
+                     
                       const resumenDelegados = recinto.resumenDelegados || { titulares: 0, reservas: 0, total: 0 };
                       const cantidadMesas = recinto.mesas?.length || recinto.cantidadMesas || 0;
                       

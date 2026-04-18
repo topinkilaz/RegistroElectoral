@@ -97,4 +97,5 @@ export interface RecintosParams {
   procesoId: number;
   page?: number;
   limit?: number;
+  search?: string;
 }
